@@ -19,6 +19,10 @@ router.get('/settings/ai-connections.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../../public/views/settings/ai-connections.html'));
 });
 
+router.get('/settings/kpi.html', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../public/views/settings/kpi.html'));
+});
+
 router.get('/projects.html', (req, res) => {
     res.sendFile(path.join(__dirname, '../../public/views/projects.html'));
 });

@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const Report = require('../models/Report');
+const Project = require('../models/Project');
+const KPI = require('../models/KPI');
 const PDFService = require('../services/PDFService');
 
 exports.createReport = async (req, res) => {
@@ -236,6 +238,65 @@ exports.getDashboardStats = async (req, res) => {
             });
         }
 
+        // 5. Calculate KPI Goals (Integrated)
+        const currentYear = new Date().getFullYear();
+        // console.log(`[KPI_DEBUG] Fetching KPI for User: ${userId}, Year: ${currentYear}`); // Cleaning up debug
+
+        const kpiSettings = await KPI.findOne({ user: userId, year: currentYear });
+        const goals = [];
+
+        if (kpiSettings && kpiSettings.targets) {
+            // console.log(`[KPI_DEBUG] Found Settings:`, kpiSettings ? 'YES' : 'NO'); // Cleaning up debug
+            // console.log(`[KPI_DEBUG] Processing ${kpiSettings.targets.length} targets`); // Cleaning up debug
+            for (const target of kpiSettings.targets) {
+                let current = 0;
+                const tagRegex = new RegExp(`^${target.tag}$`, 'i');
+
+                if (target.metric === 'ReportsClosed') {
+                    const closedReports = await Report.aggregate([
+                        {
+                            $match: {
+                                user: new mongoose.Types.ObjectId(userId),
+                                tags: { $in: [tagRegex] }
+                            }
+                        },
+                        {
+                            $project: {
+                                hasOpenVulns: {
+                                    $gt: [
+                                        { $size: { $filter: { input: { $ifNull: ["$vulnerabilities", []] }, as: "v", cond: { $eq: ["$$v.status", "Open"] } } } },
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        { $match: { hasOpenVulns: false } },
+                        { $count: "count" }
+                    ]);
+                    current = closedReports.length > 0 ? closedReports[0].count : 0;
+
+                } else if (target.metric === 'ReportsCompleted') {
+                    current = await Report.countDocuments({ user: userId, tags: { $in: [tagRegex] } });
+
+                } else if (target.metric === 'VulnerabilitiesFound') {
+                    const vulns = await Report.aggregate([
+                        { $match: { user: new mongoose.Types.ObjectId(userId), tags: { $in: [tagRegex] } } },
+                        { $unwind: "$vulnerabilities" },
+                        { $count: "count" }
+                    ]);
+                    current = vulns.length > 0 ? vulns[0].count : 0;
+                }
+
+                goals.push({
+                    metric: target.metric,
+                    tag: target.tag,
+                    target: target.targetValue,
+                    current: current,
+                    percent: Math.min(100, Math.round((current / target.targetValue) * 100))
+                });
+            }
+        }
+
         res.json({
             counts: {
                 reports: totalReports,
@@ -244,11 +305,207 @@ exports.getDashboardStats = async (req, res) => {
             },
             vulnerabilities: vulnStats,
             recentRisks: topRisks,
-            reportStats: reportStats
+            reportStats: reportStats,
+            goals: goals
         });
 
     } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
-        res.status(500).json({ message: 'Error fetching dashboard stats' });
+        console.error('Error getting dashboard stats:', error);
+        res.status(500).json({ message: 'Error getting dashboard stats' });
+    }
+};
+
+exports.getKpiStats = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        // 1. Basic Counts & Severity Distribution (Reuse similar logic but optimized for KPI)
+        const totalStats = await Report.aggregate([
+            { $match: { user: new mongoose.Types.ObjectId(userId) } },
+            { $unwind: "$vulnerabilities" },
+            {
+                $group: {
+                    _id: null,
+                    totalVulns: { $sum: 1 },
+                    criticalCount: {
+                        $sum: { $cond: [{ $regexMatch: { input: "$vulnerabilities.severity", regex: /^critical$/i } }, 1, 0] }
+                    },
+                    highCount: {
+                        $sum: { $cond: [{ $regexMatch: { input: "$vulnerabilities.severity", regex: /^high$/i } }, 1, 0] }
+                    },
+                    mediumCount: {
+                        $sum: { $cond: [{ $regexMatch: { input: "$vulnerabilities.severity", regex: /^medium$/i } }, 1, 0] }
+                    },
+                    lowCount: {
+                        $sum: { $cond: [{ $regexMatch: { input: "$vulnerabilities.severity", regex: /^low$/i } }, 1, 0] }
+                    }
+                }
+            }
+        ]);
+
+        const reportCount = await Report.countDocuments({ user: userId });
+
+        // 2. Trends (Last 6 Months)
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        const trends = await Report.aggregate([
+            {
+                $match: {
+                    user: new mongoose.Types.ObjectId(userId),
+                    createdAt: { $gte: sixMonthsAgo }
+                }
+            },
+            { $unwind: "$vulnerabilities" },
+            {
+                $group: {
+                    _id: {
+                        month: { $month: "$createdAt" },
+                        year: { $year: "$createdAt" }
+                    },
+                    count: { $sum: 1 },
+                    criticals: {
+                        $sum: { $cond: [{ $regexMatch: { input: "$vulnerabilities.severity", regex: /^critical$/i } }, 1, 0] }
+                    }
+                }
+            },
+            { $sort: { "_id.year": 1, "_id.month": 1 } }
+        ]);
+
+        // 3. Top Categories (Grouping by Vulnerability Title as a proxy for category)
+        const categories = await Report.aggregate([
+            { $match: { user: new mongoose.Types.ObjectId(userId) } },
+            { $unwind: "$vulnerabilities" },
+            {
+                $group: {
+                    _id: "$vulnerabilities.title",
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } },
+            { $limit: 5 }
+        ]);
+
+        // Calculate Weighted Score
+        // Crit=10, High=5, Med=2, Low=1
+        let kpiData = {
+            totalVulns: 0,
+            critical: 0,
+            reports: reportCount,
+            avgScore: 0,
+            severityDist: { Critical: 0, High: 0, Medium: 0, Low: 0 },
+            trends: [],
+            topCategories: []
+        };
+
+        if (totalStats.length > 0) {
+            const s = totalStats[0];
+            kpiData.totalVulns = s.totalVulns;
+            kpiData.critical = s.criticalCount;
+            kpiData.severityDist = {
+                Critical: s.criticalCount,
+                High: s.highCount,
+                Medium: s.mediumCount,
+                Low: s.lowCount
+            };
+
+            // Simple Score Calculation
+            const weightedSum = (s.criticalCount * 10) + (s.highCount * 5) + (s.mediumCount * 2) + (s.lowCount * 1);
+            kpiData.avgScore = s.totalVulns > 0 ? (weightedSum / s.totalVulns).toFixed(1) : 0;
+        }
+
+        // Format Trends for Frontend
+        kpiData.trends = trends.map(t => ({
+            label: `${t._id.month}/${t._id.year}`,
+            count: t.count,
+            criticals: t.criticals
+        }));
+
+        kpiData.topCategories = categories.map(c => ({
+            name: c._id || 'Unknown',
+            count: c.count
+        }));
+
+        // 4. Calculate Progress against KPI Targets
+        const currentYear = new Date().getFullYear();
+        const kpiSettings = await KPI.findOne({ user: userId, year: currentYear });
+
+        kpiData.goals = [];
+
+        if (kpiSettings && kpiSettings.targets) {
+            for (const target of kpiSettings.targets) {
+                let current = 0;
+                const tagRegex = new RegExp(`^${target.tag}$`, 'i'); // Case-insensitive tag match
+
+                if (target.metric === 'ReportsClosed') {
+                    // Count reports with this tag where NO 'Open' vulnerabilities exist
+                    // Reuse logic similar to reportStatusAgg but filtered by tag
+                    const closedReports = await Report.aggregate([
+                        {
+                            $match: {
+                                user: new mongoose.Types.ObjectId(userId),
+                                tags: { $in: [tagRegex] }
+                            }
+                        },
+                        {
+                            $project: {
+                                hasOpenVulns: {
+                                    $gt: [
+                                        {
+                                            $size: {
+                                                $filter: {
+                                                    input: { $ifNull: ["$vulnerabilities", []] },
+                                                    as: "v",
+                                                    cond: { $eq: ["$$v.status", "Open"] }
+                                                }
+                                            }
+                                        },
+                                        0
+                                    ]
+                                }
+                            }
+                        },
+                        { $match: { hasOpenVulns: false } },
+                        { $count: "count" }
+                    ]);
+                    current = closedReports.length > 0 ? closedReports[0].count : 0;
+
+                } else if (target.metric === 'ReportsCompleted') {
+                    // Simply count reports with this tag
+                    current = await Report.countDocuments({
+                        user: userId,
+                        tags: { $in: [tagRegex] }
+                    });
+
+                } else if (target.metric === 'VulnerabilitiesFound') {
+                    // Count total vulnerabilities in reports with this tag
+                    const vulns = await Report.aggregate([
+                        {
+                            $match: {
+                                user: new mongoose.Types.ObjectId(userId),
+                                tags: { $in: [tagRegex] }
+                            }
+                        },
+                        { $unwind: "$vulnerabilities" },
+                        { $count: "count" }
+                    ]);
+                    current = vulns.length > 0 ? vulns[0].count : 0;
+                }
+
+                kpiData.goals.push({
+                    metric: target.metric,
+                    tag: target.tag,
+                    target: target.targetValue,
+                    current: current,
+                    percent: Math.min(100, Math.round((current / target.targetValue) * 100))
+                });
+            }
+        }
+
+        res.json(kpiData);
+
+    } catch (error) {
+        console.error('Error fetching KPI stats:', error);
+        res.status(500).json({ message: 'Error fetching KPI stats' });
     }
 };

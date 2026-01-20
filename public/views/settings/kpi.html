@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPI Settings - Pentest AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Component -->
+        <app-sidebar></app-sidebar>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>KPI Settings</h1>
+                <div class="user-profile">
+                    <span id="usernameDisplay">Admin</span>
+                </div>
+            </div>
+
+            <div
+                class="card p-8 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl max-w-4xl mx-auto">
+                <form id="kpiSettingsForm">
+                    <!-- Top Controls: User & Year -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <label class="block text-slate-400 text-sm font-medium mb-2">Select User</label>
+                            <select id="userSelect"
+                                class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                                <option value="">Loading users...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-sm font-medium mb-2">Year</label>
+                            <input type="number" id="yearInput" value="2026"
+                                class="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                        </div>
+                    </div>
+
+                    <!-- Targets Section -->
+                    <div class="mb-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold text-white">Target Goals</h3>
+                            <button type="button" id="addTargetBtn"
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                                <i class="fas fa-plus mr-2"></i> Add Target
+                            </button>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-700 text-slate-400 text-sm uppercase">
+                                        <th class="py-3 px-4">Metric</th>
+                                        <th class="py-3 px-4">Tag / Condition</th>
+                                        <th class="py-3 px-4 w-32">Target Value</th>
+                                        <th class="py-3 px-4 w-16"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="targetsTableBody">
+                                    <!-- Dynamic Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex justify-end pt-6 border-t border-slate-700">
+                        <button type="submit"
+                            class="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-medium py-3 px-8 rounded-lg shadow-lg shadow-indigo-500/20 transition-all transform hover:scale-[1.02]">
+                            Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template for Row -->
+    <template id="targetRowTemplate">
+        <tr class="border-b border-slate-700/50 group hover:bg-slate-700/20 transition-colors">
+            <td class="p-3">
+                <select
+                    class="target-metric w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:border-indigo-500">
+                    <option value="ReportsClosed">Reports Closed (All Vulns Fixed)</option>
+                    <option value="ReportsCompleted">Reports Completed (Submitted)</option>
+                    <option value="VulnerabilitiesFound">Vulnerabilities Found</option>
+                </select>
+            </td>
+            <td class="p-3">
+                <input type="text"
+                    class="target-tag w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:border-indigo-500"
+                    placeholder="e.g. pentest2026">
+            </td>
+            <td class="p-3">
+                <input type="number"
+                    class="target-value w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:border-indigo-500"
+                    placeholder="0">
+            </td>
+            <td class="p-3 text-center">
+                <button type="button" class="text-slate-500 hover:text-red-400 transition-colors delete-row-btn">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    </template>
+
+    <script src="/components/sidebar.js"></script>
+    <script src="/js/settings/kpi.js"></script>
+    <script>
+        // Simple current year set
+        document.getElementById('yearInput').value = new Date().getFullYear();
+    </script>
+</body>
+
+</html>

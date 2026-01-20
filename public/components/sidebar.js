@@ -11,13 +11,14 @@ class AppSidebar extends HTMLElement {
                 <nav>
                     <a href="/dashboard.html" class="nav-link">Dashboard</a>
                     <a href="/projects.html" class="nav-link">Projects</a>
+
                     <!-- Clicking New Report usually opens a modal, but here we might need to handle it differently or just keep it as is. 
                          In existing code, New Report link was href="#" and sometimes triggered a modal defined in the page.
                          To keep it simple, we might need a global event or just let it specific pages handle it. 
                          However, looking at project-dashboard.html, "New Report" button calls createNewReport(). 
                          The sidebar link # might be a placeholder. Let's keep it consistent with what it was. -->
-                    <a href="#" class="nav-link" id="navNewReport">New Report</a>
-                    <a href="#" class="nav-link">My Reports</a>
+
+
                     <div class="nav-group">
                         <div class="nav-link-header" id="settings-header">
                             <span>Settings</span>
@@ -27,6 +28,7 @@ class AppSidebar extends HTMLElement {
                             <a href="/settings/frameworks.html" class="nav-sub-link">Frameworks</a>
                             <a href="/settings/users.html" class="nav-sub-link">Users</a>
                             <a href="/settings/ai-connections.html" class="nav-sub-link">AI Connections</a>
+                            <a href="/settings/kpi.html" class="nav-sub-link">KPI Settings</a>
                         </div>
                     </div>
                 </nav>
@@ -119,22 +121,7 @@ class AppSidebar extends HTMLElement {
             });
         }
 
-        // New Report Click
-        const newReportLink = this.querySelector('#navNewReport');
-        if (newReportLink) {
-            newReportLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                // Dispatch custom event that pages can listen to
-                this.dispatchEvent(new CustomEvent('new-report-click', {
-                    bubbles: true,
-                    composed: true
-                }));
-                // Fallback/Legacy: If window.createNewReport exists (global), call it
-                if (typeof window.createNewReport === 'function') {
-                    window.createNewReport();
-                }
-            });
-        }
+
     }
 }
 

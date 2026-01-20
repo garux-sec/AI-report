@@ -7,6 +7,7 @@
     <title>Dashboard - Pentest Report System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
 
 </head>
@@ -22,6 +23,11 @@
                 <div class="user-profile">
                     <span id="usernameDisplay">User</span>
                 </div>
+            </div> <!-- Closing Header -->
+
+            <!-- KPI Goals Progress (Hidden by default) -->
+            <div id="kpiGoalsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+                <!-- Dynamic Content -->
             </div>
 
             <!-- Stats Grid -->
@@ -38,7 +44,8 @@
                 </div>
                 <div
                     class="card p-6 flex flex-col items-center justify-center bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl">
-                    <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-2">Total Vulnerabilities
+                    <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-2">Total
+                        Vulnerabilities
                     </h3>
                     <span id="statVulns" class="text-4xl font-bold text-indigo-400">-</span>
                 </div>
@@ -88,8 +95,8 @@
                 </div>
             </div>
 
-        </div>
-    </div>
+        </div> <!-- Closing Main Content -->
+    </div> <!-- Closing Dashboard Container (Fixing missing close) -->
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
