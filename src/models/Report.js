@@ -51,6 +51,13 @@ const ReportSchema = new mongoose.Schema({
         server: String
     },
     vulnerabilities: [VulnerabilitySchema],
+    tags: {
+        type: [{
+            type: String,
+            trim: true
+        }],
+        default: []
+    },
     createdAt: {
         type: Date,
         default: Date.now

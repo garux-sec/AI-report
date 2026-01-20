@@ -6,6 +6,12 @@ const token = localStorage.getItem('token');
 let vulnerabilities = [];
 let editingIndex = -1;
 
+// Frameworks and Tags State
+let allFrameworks = [];
+let selectedFrameworkIds = [];
+let allAvailableTags = [];
+let selectedTags = [];
+
 document.addEventListener('DOMContentLoaded', async () => {
     if (!token) {
         window.location.href = '/login.html';
@@ -17,6 +23,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         document.getElementById('reportId').value = reportId;
     }
+
+    // Load frameworks and tags
+    await loadFrameworks();
+    await loadSuggestedTags();
+    setupTagInput();
 
     // Set Default Dates if empty
     if (!document.getElementById('startDate').value) {
@@ -48,6 +59,23 @@ async function loadReport(id) {
         if (report.endDate) {
             document.getElementById('endDate').value = new Date(report.endDate).toISOString().split('T')[0];
         }
+
+        // Frameworks
+        selectedFrameworkIds = (report.frameworks || []).map(f => typeof f === 'string' ? f : f._id);
+        renderFrameworks();
+
+        // Information Gathering
+        if (report.info) {
+            document.getElementById('infoIp').value = report.info.ip || '';
+            document.getElementById('infoDomain').value = report.info.domain || '';
+            document.getElementById('infoPort').value = report.info.port || '';
+            document.getElementById('infoOs').value = report.info.os || '';
+            document.getElementById('infoServer').value = report.info.server || '';
+        }
+
+        // Tags
+        selectedTags = report.tags || [];
+        renderSelectedTags();
 
         // Vulns
         vulnerabilities = report.vulnerabilities || [];
@@ -252,8 +280,21 @@ async function saveAndGenerate() {
         environment: document.getElementById('environment').value,
         startDate: document.getElementById('startDate').value,
         endDate: document.getElementById('endDate').value,
+        info: {
+            ip: document.getElementById('infoIp').value,
+            domain: document.getElementById('infoDomain').value,
+            port: document.getElementById('infoPort').value,
+            os: document.getElementById('infoOs').value,
+            server: document.getElementById('infoServer').value
+        },
+        frameworks: selectedFrameworkIds,
+        tags: selectedTags,
         vulnerabilities: vulnerabilities
     };
+
+    console.log('[DEBUG] Save Payload - Frameworks:', selectedFrameworkIds);
+    console.log('[DEBUG] Save Payload - Tags:', selectedTags);
+    console.log('[DEBUG] Full Payload:', payload);
 
     if (!token) {
         alert('Authentication token missing. Please login again.');
@@ -645,3 +686,197 @@ async function downloadPDF(id) {
     }
 }
 
+// ========== FRAMEWORKS MANAGEMENT ==========
+
+async function loadFrameworks() {
+    try {
+        const res = await fetch('/api/frameworks', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            allFrameworks = await res.json();
+            renderFrameworks();
+        }
+    } catch (error) {
+        console.error('Error loading frameworks:', error);
+    }
+}
+
+function renderFrameworks() {
+    const container = document.getElementById('frameworksList');
+    if (!container) return;
+
+    if (!allFrameworks || allFrameworks.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-sm italic col-span-full text-center py-4 bg-gray-800/30 rounded-lg border border-dashed border-gray-700">No frameworks available. Please add them in Settings.</div>';
+        return;
+    }
+
+    container.innerHTML = '';
+    allFrameworks.forEach(f => {
+        const isChecked = selectedFrameworkIds.includes(f._id);
+
+        const label = document.createElement('label');
+        label.htmlFor = `fw_${f._id}`;
+        label.className = "relative flex items-center p-3 rounded-lg border border-gray-700 bg-slate-800/50 cursor-pointer transition-all hover:bg-slate-800 hover:border-indigo-500/50 text-gray-300 select-none";
+
+        if (isChecked) {
+            label.className += " border-indigo-500 bg-indigo-500/10";
+        }
+
+        label.innerHTML = `
+            <input type="checkbox" name="frameworks" value="${f._id}" id="fw_${f._id}" 
+                   class="peer sr-only" ${isChecked ? 'checked' : ''}
+                   onchange="toggleFramework('${f._id}')">
+            <div class="w-5 h-5 mr-3 rounded border border-gray-600 bg-gray-900 flex items-center justify-center transition-all peer-checked:bg-indigo-600 peer-checked:border-indigo-600 peer-checked:shadow-sm">
+               <svg class="w-3 h-3 text-white ${isChecked ? 'opacity-100' : 'opacity-0'} transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+               </svg>
+            </div>
+            <div class="flex-1">
+                <span class="block font-medium text-sm text-gray-200">${f.name}</span>
+                <span class="block text-xs text-gray-500">${f.year}</span>
+            </div>
+        `;
+        container.appendChild(label);
+    });
+}
+
+window.toggleFramework = (frameworkId) => {
+    const index = selectedFrameworkIds.indexOf(frameworkId);
+    if (index > -1) {
+        selectedFrameworkIds.splice(index, 1);
+    } else {
+        selectedFrameworkIds.push(frameworkId);
+    }
+    renderFrameworks();
+};
+
+// ========== TAGS MANAGEMENT ==========
+
+async function loadSuggestedTags() {
+    try {
+        const res = await fetch('/api/reports/tags', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            allAvailableTags = await res.json();
+        }
+    } catch (error) {
+        console.error('Error loading tags:', error);
+    }
+}
+
+function setupTagInput() {
+    const tagInput = document.getElementById('tagInput');
+    const tagSuggestions = document.getElementById('tagSuggestions');
+
+    if (!tagInput) return;
+
+    // Handle Enter key to add tag
+    tagInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const tagValue = tagInput.value.trim();
+            if (tagValue) {
+                addTag(tagValue);
+                tagInput.value = '';
+                tagSuggestions.classList.add('hidden');
+            }
+        } else if (e.key === 'Escape') {
+            tagSuggestions.classList.add('hidden');
+        }
+    });
+
+    // Handle input for autocomplete
+    tagInput.addEventListener('input', (e) => {
+        const value = e.target.value.trim().toLowerCase();
+
+        if (value.length > 0) {
+            const filtered = allAvailableTags.filter(tag =>
+                tag.toLowerCase().includes(value) && !selectedTags.includes(tag)
+            );
+
+            if (filtered.length > 0) {
+                renderAutocomplete(filtered);
+                tagSuggestions.classList.remove('hidden');
+            } else {
+                tagSuggestions.classList.add('hidden');
+            }
+        } else {
+            tagSuggestions.classList.add('hidden');
+        }
+    });
+
+    // Close suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!tagInput.contains(e.target) && !tagSuggestions.contains(e.target)) {
+            tagSuggestions.classList.add('hidden');
+        }
+    });
+}
+
+function renderAutocomplete(tags) {
+    const tagSuggestions = document.getElementById('tagSuggestions');
+    if (!tagSuggestions) return;
+
+    tagSuggestions.innerHTML = tags.map(tag => `
+        <div class="px-3 py-2 hover:bg-slate-700 cursor-pointer text-sm text-gray-300 transition-colors border-b border-gray-700 last:border-0"
+             onclick="addTagFromSuggestion('${tag.replace(/'/g, "\\'")}')">
+            <i class="fas fa-tag text-indigo-400 mr-2 text-xs"></i>${tag}
+        </div>
+    `).join('');
+}
+
+window.addTagFromSuggestion = (tag) => {
+    addTag(tag);
+    document.getElementById('tagInput').value = '';
+    document.getElementById('tagSuggestions').classList.add('hidden');
+};
+
+function addTag(tagName) {
+    const trimmedTag = tagName.trim();
+
+    if (!trimmedTag) return;
+    if (selectedTags.includes(trimmedTag)) {
+        return;
+    }
+
+    selectedTags.push(trimmedTag);
+    renderSelectedTags();
+}
+
+function removeTag(tagName) {
+    selectedTags = selectedTags.filter(t => t !== tagName);
+    renderSelectedTags();
+}
+
+window.removeTag = removeTag;
+
+function renderSelectedTags() {
+    const container = document.getElementById('selectedTags');
+    if (!container) return;
+
+    if (selectedTags.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-sm italic">No tags added yet</div>';
+        return;
+    }
+
+    container.innerHTML = selectedTags.map(tag => {
+        const escapedTag = tag.replace(/"/g, '&quot;');
+        return `
+        <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-sm group hover:bg-indigo-500/30 transition-all">
+            <i class="fas fa-tag mr-2 text-xs"></i>
+            ${tag}
+            <button type="button" onclick='removeTag("${escapedTag}")' 
+                    class="ml-2 text-indigo-400 hover:text-red-400 transition-colors focus:outline-none"
+                    title="Remove tag">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </span>
+    `;
+    }).join('');
+}
+
+window.addTag = addTag;

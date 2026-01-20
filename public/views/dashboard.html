@@ -5,104 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Pentest Report System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
-    <style>
-        .dashboard-container {
-            display: flex;
-            width: 100vw;
-            height: 100vh;
-        }
 
-        .sidebar {
-            width: 250px;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid var(--glass-border);
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 2rem;
-            overflow-y: auto;
-        }
-
-        .nav-link {
-            display: block;
-            padding: 1rem;
-            color: var(--text-color);
-            text-decoration: none;
-            border-radius: 8px;
-            margin-bottom: 0.5rem;
-            transition: background 0.3s;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--primary-color);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-
-        .card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 1.5rem;
-        }
-
-        .logout-btn {
-            margin-top: auto;
-            background: rgba(239, 68, 68, 0.2);
-            border: 1px solid rgba(239, 68, 68, 0.5);
-        }
-
-        .logout-btn:hover {
-            background: rgba(239, 68, 68, 0.4);
-        }
-    </style>
 </head>
 
 <body>
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <div class="sidebar">
-            <h2 style="margin-bottom: 2rem;">Pentest AI</h2>
-            <nav>
-                <a href="/dashboard.html" class="nav-link">Dashboard</a>
-                <a href="/projects.html" class="nav-link">Projects</a>
-                <a href="#" class="nav-link">New Report</a>
-                <a href="#" class="nav-link">My Reports</a>
-                <div class="nav-group">
-                    <div class="nav-link-header"
-                        onclick="document.getElementById('dash-settings').classList.toggle('collapsed')">
-                        <span>Settings</span>
-                        <span>▼</span>
-                    </div>
-                    <div class="submenu collapsed" id="dash-settings">
-                        <a href="/settings/frameworks.html" class="nav-sub-link">Frameworks</a>
-                        <a href="/settings/users.html" class="nav-sub-link">Users</a>
-                        <a href="/settings/ai-connections.html" class="nav-sub-link">AI Connections</a>
-                    </div>
-                </div>
-            </nav>
-            <button class="logout-btn" id="logoutBtn">Logout</button>
-        </div>
+        <!-- Sidebar -->
+        <app-sidebar></app-sidebar>
 
         <!-- Main Content -->
         <div class="main-content">
@@ -130,6 +43,7 @@
         </div>
     </div>
 
+    <script src="/components/sidebar.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const userStr = localStorage.getItem('user');
@@ -139,13 +53,16 @@
             }
             const user = JSON.parse(userStr);
             document.getElementById('usernameDisplay').textContent = user.username;
-
-            document.getElementById('logoutBtn').addEventListener('click', () => {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = '/';
-            });
         });
+
+        // Hook up New Report button from Sidebar if it exists
+        // Since sidebar is shadow-less (light dom), we can access elements after it renders
+        // But Custom Element renders somewhat asynchronously or synchronously?
+        // connectedCallback runs when inserted.
+        // We might need to wait or rely on event delegation if we want to hook 'New Report' to something specific here.
+        // dashboard.html doesn't seem to have specific New Report logic other than link # in original?
+        // Original: <a href="#" class="nav-link">New Report</a>
+        // So no specific logic needed here.
     </script>
 </body>
 

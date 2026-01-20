@@ -1,6 +1,10 @@
 const urlParams = new URLSearchParams(window.location.search);
 const projectId = urlParams.get('id');
 
+// Tag Management State
+let allAvailableTags = [];
+let selectedTags = [];
+
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('token');
     if (!token) window.location.href = '/';
@@ -262,7 +266,7 @@ function renderReportsTable() {
     }
 
     if (pageReports.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:3rem; color:#94a3b8;">No reports found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center" style="padding:3rem; color:#94a3b8;">No reports found.</td></tr>';
         return;
     }
 
@@ -329,6 +333,14 @@ function renderReportsTable() {
             <td class="px-4 py-3 text-sm">
                 <div class="flex flex-wrap items-center gap-1">
                     ${vulnBadges}
+                </div>
+            </td>
+            <td class="px-4 py-3 text-sm">
+                <div class="flex flex-wrap items-center gap-1">
+                    ${r.tags && r.tags.length > 0
+                ? r.tags.map(tag => `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">${tag}</span>`).join(' ')
+                : '<span class="text-gray-500 text-xs italic">No tags</span>'
+            }
                 </div>
             </td>
             <td class="px-4 py-3">
@@ -517,6 +529,8 @@ function renderProjectStats(reports) {
 window.createNewReport = () => {
     document.getElementById('reportModal').style.display = 'block';
     loadFrameworks();
+    loadSuggestedTags();
+    setupTagInput();
 };
 
 async function loadFrameworks() {
@@ -584,6 +598,8 @@ async function loadFrameworks() {
 window.closeReportModal = () => {
     document.getElementById('reportModal').style.display = 'none';
     document.getElementById('reportForm').reset();
+    selectedTags = [];
+    renderSelectedTags();
 };
 
 async function createReport(e) {
@@ -597,6 +613,7 @@ async function createReport(e) {
     const payload = {
         systemName: document.getElementById('systemName').value,
         frameworks: frameworks,
+        tags: selectedTags, // Include selected tags
         project: projectId, // Link to this project
         // Defaults for now to satisfy schema if needed (schema only requires systemName)
         format: 'Blackbox',
@@ -647,3 +664,164 @@ async function deleteReport(id) {
         alert('Error deleting report');
     }
 }
+
+// ========== TAG MANAGEMENT FUNCTIONS ==========
+
+async function loadSuggestedTags() {
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/reports/tags', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+            allAvailableTags = await res.json();
+            renderSuggestedTags();
+        }
+    } catch (error) {
+        console.error('Error loading tags:', error);
+    }
+}
+
+function setupTagInput() {
+    const tagInput = document.getElementById('tagInput');
+    const tagSuggestions = document.getElementById('tagSuggestions');
+
+    if (!tagInput) return;
+
+    // Handle Enter key to add tag
+    tagInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const tagValue = tagInput.value.trim();
+            if (tagValue) {
+                addTag(tagValue);
+                tagInput.value = '';
+                tagSuggestions.classList.add('hidden');
+            }
+        } else if (e.key === 'Escape') {
+            tagSuggestions.classList.add('hidden');
+        }
+    });
+
+    // Handle input for autocomplete
+    tagInput.addEventListener('input', (e) => {
+        const value = e.target.value.trim().toLowerCase();
+
+        if (value.length > 0) {
+            const filtered = allAvailableTags.filter(tag =>
+                tag.toLowerCase().includes(value) && !selectedTags.includes(tag)
+            );
+
+            if (filtered.length > 0) {
+                renderAutocomplete(filtered);
+                tagSuggestions.classList.remove('hidden');
+            } else {
+                tagSuggestions.classList.add('hidden');
+            }
+        } else {
+            tagSuggestions.classList.add('hidden');
+        }
+    });
+
+    // Close suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!tagInput.contains(e.target) && !tagSuggestions.contains(e.target)) {
+            tagSuggestions.classList.add('hidden');
+        }
+    });
+}
+
+function renderAutocomplete(tags) {
+    const tagSuggestions = document.getElementById('tagSuggestions');
+    if (!tagSuggestions) return;
+
+    tagSuggestions.innerHTML = tags.map(tag => `
+        <div class="px-3 py-2 hover:bg-slate-700 cursor-pointer text-sm text-gray-300 transition-colors border-b border-gray-700 last:border-0"
+             onclick="addTagFromSuggestion('${tag.replace(/'/g, "\\'")}')"
+        >
+            <i class="fas fa-tag text-indigo-400 mr-2 text-xs"></i>${tag}
+        </div>
+    `).join('');
+}
+
+window.addTagFromSuggestion = (tag) => {
+    addTag(tag);
+    document.getElementById('tagInput').value = '';
+    document.getElementById('tagSuggestions').classList.add('hidden');
+};
+
+function addTag(tagName) {
+    const trimmedTag = tagName.trim();
+
+    if (!trimmedTag) return;
+    if (selectedTags.includes(trimmedTag)) {
+        // Tag already added
+        return;
+    }
+
+    selectedTags.push(trimmedTag);
+    renderSelectedTags();
+    renderSuggestedTags(); // Update suggested tags to hide already selected ones
+}
+
+function removeTag(tagName) {
+    selectedTags = selectedTags.filter(t => t !== tagName);
+    renderSelectedTags();
+    renderSuggestedTags();
+}
+
+window.removeTag = removeTag;
+
+function renderSelectedTags() {
+    const container = document.getElementById('selectedTags');
+    if (!container) return;
+
+    if (selectedTags.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-sm italic">No tags added yet</div>';
+        return;
+    }
+
+    container.innerHTML = selectedTags.map(tag => `
+        <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-sm group hover:bg-indigo-500/30 transition-all">
+            <i class="fas fa-tag mr-2 text-xs"></i>
+            ${tag}
+            <button type="button" onclick="removeTag('${tag.replace(/'/g, "\\'")}')"
+                    class="ml-2 text-indigo-400 hover:text-red-400 transition-colors focus:outline-none"
+                    title="Remove tag">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </span>
+    `).join('');
+}
+
+function renderSuggestedTags() {
+    const container = document.getElementById('suggestedTags');
+    const containerWrapper = document.getElementById('suggestedTagsContainer');
+
+    if (!container || !containerWrapper) return;
+
+    // Filter out already selected tags
+    const availableTags = allAvailableTags.filter(tag => !selectedTags.includes(tag));
+
+    if (availableTags.length === 0) {
+        containerWrapper.classList.add('hidden');
+        return;
+    }
+
+    containerWrapper.classList.remove('hidden');
+
+    // Show only first 10 suggested tags
+    const tagsToShow = availableTags.slice(0, 10);
+
+    container.innerHTML = tagsToShow.map(tag => `
+        <button type="button" 
+                onclick="addTag('${tag.replace(/'/g, "\\'")}')"
+                class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-700/50 text-gray-300 border border-gray-600 hover:bg-indigo-500/20 hover:border-indigo-500/50 hover:text-indigo-300 transition-all shadow-sm">
+            <i class="fas fa-plus mr-1.5 text-[10px]"></i>
+            ${tag}
+        </button>
+    `).join('');
+}
+
+window.addTag = addTag;

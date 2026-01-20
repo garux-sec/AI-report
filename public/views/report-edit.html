@@ -25,27 +25,8 @@
 <body>
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <div class="sidebar">
-            <h2 style="margin-bottom: 2rem;">Pentest AI</h2>
-            <nav>
-                <a href="/dashboard.html" class="nav-link">Dashboard</a>
-                <a href="/projects.html" class="nav-link">Projects</a>
-                <a href="#" class="nav-link active">Report Editor</a>
-                <a href="#" class="nav-link">My Reports</a>
-                <div class="nav-group">
-                    <div class="nav-link-header collapsed" onclick="toggleSubmenu('settings-submenu')">
-                        <span>Settings</span>
-                        <span class="arrow">▼</span>
-                    </div>
-                    <div class="submenu collapsed" id="settings-submenu">
-                        <a href="/settings/frameworks.html" class="nav-sub-link">Frameworks</a>
-                        <a href="/settings/users.html" class="nav-sub-link">Users</a>
-                        <a href="/settings/ai-connections.html" class="nav-sub-link">AI Connections</a>
-                    </div>
-                </div>
-            </nav>
-            <button class="logout-btn" id="logoutBtn" style="margin-top:auto;">Logout</button>
-        </div>
+        <!-- Sidebar -->
+        <app-sidebar></app-sidebar>
 
         <!-- Main Content -->
         <div class="main-content" style="overflow-y: auto;">
@@ -160,6 +141,111 @@
                                     <input type="date" id="endDate"
                                         class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white">
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Section: Information Gathering -->
+                        <div class="mb-8">
+                            <h3 class="text-lg font-semibold text-gray-300 mb-4 flex items-center">
+                                <i class="fas fa-search mr-2 text-indigo-400"></i> Information Gathering
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="group">
+                                    <label
+                                        class="block mb-2 font-medium text-gray-300 group-hover:text-white transition-colors">
+                                        <i
+                                            class="fas fa-network-wired mr-2 text-gray-500 group-hover:text-indigo-400"></i>Host
+                                        IP Address
+                                    </label>
+                                    <input type="text" id="infoIp"
+                                        class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white"
+                                        placeholder="e.g. 192.168.1.100">
+                                </div>
+
+                                <div class="group">
+                                    <label
+                                        class="block mb-2 font-medium text-gray-300 group-hover:text-white transition-colors">
+                                        <i
+                                            class="fas fa-globe mr-2 text-gray-500 group-hover:text-indigo-400"></i>Domain
+                                        Name
+                                    </label>
+                                    <input type="text" id="infoDomain"
+                                        class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white"
+                                        placeholder="e.g. example.com">
+                                </div>
+
+                                <div class="group">
+                                    <label
+                                        class="block mb-2 font-medium text-gray-300 group-hover:text-white transition-colors">
+                                        <i
+                                            class="fas fa-door-open mr-2 text-gray-500 group-hover:text-indigo-400"></i>Ports
+                                        Open
+                                    </label>
+                                    <input type="text" id="infoPort"
+                                        class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white"
+                                        placeholder="e.g. 80, 443, 8080">
+                                </div>
+
+                                <div class="group">
+                                    <label
+                                        class="block mb-2 font-medium text-gray-300 group-hover:text-white transition-colors">
+                                        <i
+                                            class="fas fa-desktop mr-2 text-gray-500 group-hover:text-indigo-400"></i>Operating
+                                        System
+                                    </label>
+                                    <input type="text" id="infoOs"
+                                        class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white"
+                                        placeholder="e.g. Ubuntu 20.04">
+                                </div>
+
+                                <div class="group col-span-1 md:col-span-2">
+                                    <label
+                                        class="block mb-2 font-medium text-gray-300 group-hover:text-white transition-colors">
+                                        <i
+                                            class="fas fa-cogs mr-2 text-gray-500 group-hover:text-indigo-400"></i>Services
+                                        & Applications
+                                    </label>
+                                    <input type="text" id="infoServer"
+                                        class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white"
+                                        placeholder="e.g. Apache 2.4.41, MySQL 8.0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section: Security Frameworks -->
+                        <div class="mb-8">
+                            <h3 class="text-lg font-semibold text-gray-300 mb-4 flex items-center">
+                                <i class="fas fa-shield-alt mr-2 text-indigo-400"></i> Security Frameworks
+                            </h3>
+                            <div id="frameworksList" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <!-- Framework checkboxes will be injected here -->
+                                <div class="text-gray-500 text-sm italic py-2">Loading frameworks...</div>
+                            </div>
+                        </div>
+
+                        <!-- Section: Tags -->
+                        <div class="mb-8">
+                            <h3 class="text-lg font-semibold text-gray-300 mb-4 flex items-center">
+                                <i class="fas fa-tags mr-2 text-indigo-400"></i> Tags
+                            </h3>
+
+                            <!-- Tag Input -->
+                            <div class="relative mb-3">
+                                <input type="text" id="tagInput"
+                                    class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white"
+                                    placeholder="Type a tag and press Enter..." autocomplete="off">
+
+                                <!-- Autocomplete Dropdown -->
+                                <div id="tagSuggestions"
+                                    class="hidden absolute z-10 w-full mt-1 bg-slate-800 border border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                    <!-- Suggestions will be injected here -->
+                                </div>
+                            </div>
+
+                            <!-- Selected Tags Display -->
+                            <div id="selectedTags" class="flex flex-wrap gap-2 min-h-[2rem]">
+                                <!-- Tag pills will be injected here -->
+                                <div class="text-gray-500 text-sm italic">No tags added yet</div>
                             </div>
                         </div>
 
@@ -357,21 +443,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="/js/cvss_calculator.js"></script>
+    <script src="/components/sidebar.js"></script>
     <script src="/js/report-edit.js"></script>
-    <script>
-        function toggleSubmenu(id) {
-            const el = document.getElementById(id);
-            if (el) {
-                el.classList.toggle('collapsed');
-                el.previousElementSibling.classList.toggle('collapsed');
-            }
-        }
 
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            localStorage.removeItem('token');
-            window.location.href = '/index.html';
-        });
-    </script>
     <!-- AI Progress Overlay -->
     <div id="aiProgressOverlay"
         class="fixed inset-0 z-[200] hidden flex items-center justify-center bg-gray-900/90 backdrop-blur-sm">

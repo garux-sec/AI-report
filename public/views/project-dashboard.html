@@ -89,27 +89,7 @@
 
 <body>
     <div class="dashboard-container">
-        <div class="sidebar">
-            <h2 style="margin-bottom: 2rem;">Pentest AI</h2>
-            <nav>
-                <a href="/dashboard.html" class="nav-link">Dashboard</a>
-                <a href="/projects.html" class="nav-link active">Projects</a>
-                <a href="#" class="nav-link">New Report</a>
-                <a href="#" class="nav-link">My Reports</a>
-                <div class="nav-group">
-                    <div class="nav-link-header collapsed" onclick="toggleSubmenu('settings-submenu')">
-                        <span>Settings</span>
-                        <span class="arrow">▼</span>
-                    </div>
-                    <div class="submenu collapsed" id="settings-submenu">
-                        <a href="/settings/frameworks.html" class="nav-sub-link">Frameworks</a>
-                        <a href="/settings/users.html" class="nav-sub-link">Users</a>
-                        <a href="/settings/ai-connections.html" class="nav-sub-link">AI Connections</a>
-                    </div>
-                </div>
-            </nav>
-            <button class="logout-btn" id="logoutBtn" style="margin-top:auto;">Logout</button>
-        </div>
+        <app-sidebar></app-sidebar>
 
         <div class="main-content">
             <a href="/projects.html"
@@ -203,6 +183,7 @@
                                         <i class="fas fa-sort text-[10px] text-gray-500 group-hover:text-gray-300"></i>
                                     </div>
                                 </th>
+                                <th>Tags</th>
                                 <th class="text-right">Actions</th>
                             </tr>
                         </thead>
@@ -275,6 +256,35 @@
                                 </div>
                             </div>
 
+                            <!-- Tags Section -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Tags</label>
+                                <div class="relative">
+                                    <input type="text" id="tagInput"
+                                        class="w-full bg-slate-800 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 transition-all shadow-sm"
+                                        placeholder="Type a tag and press Enter..." autocomplete="off">
+
+                                    <!-- Autocomplete Dropdown -->
+                                    <div id="tagSuggestions"
+                                        class="hidden absolute z-10 w-full mt-1 bg-slate-800 border border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                        <!-- Suggestions will be injected here -->
+                                    </div>
+                                </div>
+
+                                <!-- Selected Tags Display -->
+                                <div id="selectedTags" class="flex flex-wrap gap-2 mt-3 min-h-[2rem]">
+                                    <!-- Tag pills will be injected here -->
+                                </div>
+
+                                <!-- Suggested Tags (Quick Add) -->
+                                <div id="suggestedTagsContainer" class="mt-3 hidden">
+                                    <div class="text-xs text-gray-400 mb-2">Suggested tags:</div>
+                                    <div id="suggestedTags" class="flex flex-wrap gap-2">
+                                        <!-- Suggested tag buttons will be injected here -->
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Hidden defaults -->
                             <input type="hidden" id="reportFormat" value="Blackbox">
                             <input type="hidden" id="reportEnv" value="Production">
@@ -292,7 +302,23 @@
             </div>
         </div>
 
+        <script src="/components/sidebar.js"></script>
         <script src="/js/project-dashboard.js"></script>
+        <script>
+            // Hook up sidebar "New Report" to the modal function if available
+            document.addEventListener('DOMContentLoaded', () => {
+                // Wait for component to render (simple timeout or just try attaching if already present)
+                setTimeout(() => {
+                    const navNewReport = document.querySelector('app-sidebar').querySelector('#navNewReport');
+                    if (navNewReport) {
+                        navNewReport.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            if (window.createNewReport) window.createNewReport();
+                        });
+                    }
+                }, 100);
+            });
+        </script>
 </body>
 
 </html>

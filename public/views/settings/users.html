@@ -4,34 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Users - Pentest AI</title>
+    <title>System Users - Pentest AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
     <div class="dashboard-container">
-        <div class="sidebar">
-            <h2 style="margin-bottom: 2rem;">Pentest AI</h2>
-            <nav>
-                <a href="/dashboard.html" class="nav-link">Dashboard</a>
-                <a href="/projects.html" class="nav-link">Projects</a>
-                <a href="#" class="nav-link">New Report</a>
-                <a href="#" class="nav-link">My Reports</a>
-                <div class="nav-group">
-                    <div class="nav-link-header" onclick="toggleSubmenu('settings-submenu')">
-                        <span>Settings</span>
-                        <span class="arrow">▼</span>
-                    </div>
-                    <div class="submenu" id="settings-submenu">
-                        <a href="/settings/frameworks.html" class="nav-sub-link">Frameworks</a>
-                        <a href="/settings/users.html" class="nav-sub-link active">Users</a>
-                        <a href="/settings/ai-connections.html" class="nav-sub-link">AI Connections</a>
-                    </div>
-                </div>
-            </nav>
-            <button class="logout-btn" id="logoutBtn" style="margin-top:auto;">Logout</button>
-        </div>
+        <app-sidebar></app-sidebar>
 
         <div class="main-content">
             <h1>System Users</h1>
@@ -73,6 +54,7 @@
         </div>
     </div>
 
+    <script src="/components/sidebar.js"></script>
     <script src="/js/users.js"></script>
 </body>
 

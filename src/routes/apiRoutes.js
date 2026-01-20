@@ -33,6 +33,7 @@ router.use('/reports', (req, res, next) => {
     next();
 });
 router.post('/reports', auth, reportController.createReport);
+router.get('/reports/tags', auth, reportController.getAllTags);
 router.get('/reports', auth, reportController.getReports);
 router.get('/reports/:id', auth, reportController.getReportById);
 router.get('/reports/:id/pdf', auth, reportController.generatePDF);
