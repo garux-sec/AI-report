@@ -1,0 +1,357 @@
+:root {
+    --primary-color: #6366f1;
+    --secondary-color: #a855f7;
+    --bg-color: #0f172a;
+    --text-color: #f8fafc;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    /* Lighter glass */
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    background-image:
+        radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+        radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+        radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+    color: var(--text-color);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* Dashboard Layout */
+.dashboard-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 260px;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    border-right: 1px solid var(--glass-border);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.main-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    position: relative;
+    background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.1), transparent 40%);
+}
+
+/* Card */
+.card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Typography */
+h1,
+h2,
+h3 {
+    margin-top: 0;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+}
+
+h1 {
+    font-size: 1.875rem;
+    margin-bottom: 1.5rem;
+}
+
+h2 {
+    font-size: 1.5rem;
+}
+
+h3 {
+    font-size: 1.25rem;
+    opacity: 0.9;
+}
+
+/* Forms & Inputs */
+input,
+button,
+select,
+textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.03);
+    color: white;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+button {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+button:hover {
+    opacity: 0.95;
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+/* Utility Classes */
+.text-center {
+    text-align: center;
+}
+
+.error-msg {
+    color: var(--danger-color);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    display: none;
+}
+
+/* Table Styles */
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 1rem;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+th {
+    color: #94a3b8;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+td {
+    color: var(--text-color);
+    font-size: 0.95rem;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* Button Variants */
+.btn-sm {
+    width: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0;
+    /* Reset global margin */
+}
+
+.btn-danger {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    animation: fadeIn 0.2s forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background: #1e293b;
+    border: 1px solid var(--glass-border);
+    margin: 5vh auto;
+    padding: 2rem;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 16px;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    transform: translateY(-20px);
+    animation: slideIn 0.3s forwards;
+}
+
+@keyframes slideIn {
+    to {
+        transform: translateY(0);
+    }
+}
+
+.close {
+    color: #94a3b8;
+    float: right;
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.close:hover {
+    color: white;
+}
+
+/* Nav Styles */
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    color: #94a3b8;
+    text-decoration: none;
+    border-radius: 8px;
+    margin-bottom: 0.25rem;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+
+.nav-group {
+    margin-top: 0.5rem;
+}
+
+.nav-link-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    color: #94a3b8;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.nav-link-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+}
+
+.submenu {
+    margin-left: 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 500px;
+    /* Arbitrary large height for transition */
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    opacity: 1;
+}
+
+.submenu.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-bottom: 0;
+}
+
+.nav-sub-link {
+    display: block;
+    padding: 0.6rem 1rem;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    border-radius: 6px;
+    margin-bottom: 2px;
+}
+
+.nav-sub-link:hover,
+.nav-sub-link.active {
+    color: var(--primary-color);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.arrow {
+    font-size: 0.75rem;
+    transition: transform 0.3s ease;
+}
+
+.submenu.collapsed+.arrow {
+    transform: rotate(-90deg);
+    /* Note: HTML structure needs check if arrow is sibling or child */
+}
+
+/* Correction for arrow rotation: In HTML arrow is child of header. */
+.nav-link-header.collapsed .arrow {
+    transform: rotate(-90deg);
+}
+
+/* Need to toggle class on header too */
+
+/* Login Container Specific */
+.glass-container {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 3rem;
+    width: 100%;
+    max-width: 420px;
+}

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Connections - Pentest AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <div class="sidebar">
+            <h2 style="margin-bottom: 2rem;">Pentest AI</h2>
+            <nav>
+                <nav>
+                    <a href="/dashboard.html" class="nav-link">Dashboard</a>
+                    <a href="/projects.html" class="nav-link">Projects</a>
+                    <a href="#" class="nav-link">New Report</a>
+                    <a href="#" class="nav-link">My Reports</a>
+                    <div class="nav-group">
+                        <div class="nav-link-header" onclick="toggleSubmenu('settings-submenu')">
+                            <span>Settings</span>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="submenu" id="settings-submenu">
+                            <a href="/settings/frameworks.html" class="nav-sub-link">Frameworks</a>
+                            <a href="/settings/users.html" class="nav-sub-link">Users</a>
+                            <a href="/settings/ai-connections.html" class="nav-sub-link active">AI Connections</a>
+                        </div>
+                    </div>
+                </nav>
+                <button class="logout-btn" id="logoutBtn" style="margin-top:auto;">Logout</button>
+        </div>
+
+        <div class="main-content">
+            <h1>AI Connections</h1>
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>Manage AI Providers</h3>
+                    <button class="btn-sm" onclick="openModal()">+ Add Connection</button>
+                </div>
+                <table id="aiTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Provider</th>
+                            <th>Model</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Modal -->
+    <div id="aiModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Add Connection</h2>
+            <form id="aiForm">
+                <input type="hidden" id="configId">
+                <input type="text" id="name" placeholder="Friendly Name (e.g. My OpenAI)" required>
+                <select id="provider" required onchange="toggleProviderFields()"
+                    style="width:100%; padding:0.75rem; margin-bottom:1rem; border-radius:8px; background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border);">
+                    <option value="" disabled selected>Select Provider</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="gemini">Google Gemini</option>
+                    <option value="ollama">Ollama</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="other">Other/Custom</option>
+                </select>
+                <input type="text" id="apiKey" placeholder="API Key (Optional for Ollama)">
+                <input type="text" id="baseUrl" placeholder="Base URL (e.g. http://localhost:11434)">
+
+                <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+                    <div style="flex:1;">
+                        <input type="text" id="modelNameInput" placeholder="Model Name (e.g. gpt-4)"
+                            style="margin-bottom:0; display:block;">
+                        <select id="modelNameSelect" style="margin-bottom:0; display:none;"
+                            onchange="document.getElementById('modelNameInput').value = this.value">
+                            <option value="" disabled selected>Select a Model</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn-sm" style="width:auto; margin-bottom:0;"
+                        onclick="fetchModels()">Load Models</button>
+                    <button type="button" class="btn-sm" style="width:auto; margin-bottom:0;"
+                        onclick="toggleModelInput()">✎</button>
+                </div>
+
+                <div style="margin-bottom:1rem; display:flex; align-items:center;">
+                    <input type="checkbox" id="isEnabled" style="width:auto; margin-bottom:0; margin-right:0.5rem;">
+                    <label for="isEnabled">Enabled</label>
+                </div>
+                <button type="submit">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/ai-connections.js"></script>
+</body>
+
+</html>

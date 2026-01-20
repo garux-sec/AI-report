@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Pentest Report System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="glass-container">
+        <h2 class="text-center">Welcome Back</h2>
+        <p class="text-center" style="opacity: 0.7; margin-bottom: 2rem;">Sign in to access the Pentest Report System</p>
+        
+        <div id="errorMsg" class="error-msg"></div>
+
+        <form id="loginForm">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+
+        <p class="text-center" style="font-size: 0.9rem;">
+            Don't have an account? <span style="opacity: 0.5;">Contact Admin</span>
+        </p>
+    </div>
+
+    <script src="/js/auth.js"></script>
+</body>
+</html>

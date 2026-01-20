@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report View - Pentest AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-bg: rgba(15, 23, 42, 0.6);
+            --paper-width: 210mm;
+            --paper-min-height: 297mm;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        /* A4 Paper Look for Screen */
+        .report-page {
+            width: 100%;
+            max-width: var(--paper-width);
+            min-height: var(--paper-min-height);
+            /* Allow expansion if strict pagination misses */
+            margin: 0 auto;
+            background: white;
+            color: #1e293b;
+            /* Dark text for paper */
+            padding: 40px;
+            /* Reduced padding from 2cm/75px for better screen use, print css handles print */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: none;
+                color: black;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .report-page {
+                width: 100%;
+                max-width: none;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+                page-break-after: always;
+            }
+        }
+
+        /* Typography overrides for "Paper" */
+        .paper-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+
+        .paper-subtitle {
+            font-size: 1.25rem;
+            color: #475569;
+            margin-top: 0.5rem;
+        }
+
+        .paper-h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #0f172a;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .paper-h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .paper-p {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #334155;
+            margin-bottom: 1rem;
+        }
+
+        .vuln-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            background: #f8fafc;
+        }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .sev-critical {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .sev-high {
+            background: #ffedd5;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+        }
+
+        .sev-medium {
+            background: #fef9c3;
+            color: #854d0e;
+            border: 1px solid #fde047;
+        }
+
+        .sev-low {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .sev-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 50;
+        }
+
+        .print-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 50;
+        }
+    </style>
+
+</head>
+
+<body class="bg-slate-900 min-h-screen text-slate-800 font-['Inter'] antialiased">
+
+    <!-- Navigation Bar (Hidden in Print/PDF) -->
+    <nav
+        class="bg-slate-900 border-b border-gray-800 px-6 py-4 flex justify-between items-center fixed top-0 w-full z-50 no-print">
+        <div class="flex items-center gap-4">
+            <a href="/project-dashboard.html?id=null" id="backLink"
+                class="text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+                <i class="fas fa-chevron-left"></i> Back
+            </a>
+            <div class="h-6 w-px bg-gray-700"></div>
+            <h1 class="text-white font-semibold tracking-wide">Report Preview</h1>
+        </div>
+        <button id="downloadPdfBtn"
+            class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-medium shadow-lg shadow-blue-500/20 transition-all flex items-center">
+            <i class="fas fa-file-pdf mr-2 group-hover:scale-110 transition-transform"></i> Save as PDF
+        </button>
+    </nav>
+
+    <!-- Spacer for fixed nav -->
+    <div class="h-24 no-print"></div>
+
+    <!-- PDF Content Wrapper -->
+
+
+    <!-- Page 1: Cover -->
+    <div class="report-page flex flex-col items-center justify-between text-center relative overflow-hidden">
+        <!-- (Content of Page 1) -->
+        <!-- Background Pattern (Optional subtle tech bg) -->
+        <div id="reportBackground" class="absolute inset-0 opacity-10 pointer-events-none"
+            style="background-size: cover; background-position: center;">
+        </div>
+
+        <!-- Top Confidential -->
+        <div class="text-red-600 tracking-wider text-sm font-medium uppercase z-10 w-full text-center mb-10">
+            Confidential
+        </div>
+
+        <!-- Logo Area -->
+        <div class="mb-12 z-10">
+            <!-- If project has logo, show it, else default or Mitr Phol placeholder text -->
+            <div id="coverLogoContainer" class="h-24 mx-auto flex items-center justify-center mb-6">
+                <!-- JS will inject img or fallback -->
+                <div
+                    class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500">
+                    MITR PHOL<br><span class="text-slate-600 text-lg tracking-widest">GROUP</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Title Section -->
+        <div class="w-full max-w-2xl px-6 z-10">
+            <h1 class="text-4xl font-normal text-slate-800 mb-4 tracking-tight">Penetration Testing Report</h1>
+            <h2 id="coverSystem" class="text-2xl text-slate-600 font-light mb-8">Target System</h2>
+
+            <!-- Red Line -->
+            <div class="h-0.5 w-full bg-red-500 mx-auto mb-16 shadow-sm"></div>
+
+            <!-- Prepared By -->
+            <div class="space-y-6">
+                <div>
+                    <div class="text-slate-500 text-lg mb-1">Prepared By</div>
+                    <div id="coverAuthor" class="text-2xl text-slate-800 font-medium">Enterprise Security Management
+                    </div>
+                </div>
+
+                <div id="coverDate" class="text-lg text-slate-600 mt-4">
+                    -
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Footer Section -->
+        <div class="w-full max-w-3xl px-12 z-10 mt-auto">
+            <p class="text-[10px] text-slate-500 italic leading-relaxed text-center mb-8">
+                This report contains sensitive information (privilege or priority information, customer PII, Etc)
+                Disclosing, copying,
+                distributing or taking any action in reliance on the contents of this information is strictly
+                prohibited
+                without prior
+                approval could cause serious harm.
+            </p>
+            <div class="text-red-600 tracking-wider text-sm font-medium uppercase w-full text-center">
+                Confidential
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 2: Table of Contents -->
+    <div class="report-page flex flex-col relative">
+        <!-- Header -->
+        <div class="flex justify-between items-end border-b-2 border-cyan-500 pb-2 mb-8 relative">
+            <div class="flex items-center gap-4">
+                <div id="tocHeaderLogo" class="h-10">
+                    <!-- JS Injected Logo -->
+                    <div class="text-xl font-bold text-blue-600">MITR PHOL</div>
+                </div>
+            </div>
+            <div class="absolute left-1/2 bottom-2 -translate-x-1/2 text-center">
+                <div class="text-sm font-medium text-slate-800">Penetration Testing Report</div>
+                <div class="text-xs text-red-500 font-medium tracking-wider">Confidential</div>
+            </div>
+            <div class="text-sm font-medium text-slate-500">1</div>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 px-4">
+            <h1 class="text-2xl font-bold text-center text-slate-800 mb-8 font-serif">Table of Contents</h1>
+
+            <div
+                class="grid grid-cols-[1fr_auto] gap-4 text-sm font-medium text-slate-700 border-b border-slate-200 pb-2 mb-4 uppercase tracking-wide">
+                <div>Section</div>
+                <div>Page</div>
+            </div>
+
+            <div class="space-y-3 text-slate-700 leading-relaxed font-normal text-sm">
+                <!-- 1. Exec Summary -->
+                <div class="grid grid-cols-[1fr_auto] gap-2">
+                    <div>1. Executive Summary</div>
+                    <div>2</div>
+                </div>
+                <div class="pl-6 space-y-1 text-slate-600 text-xs">
+                    <div class="grid grid-cols-[1fr_auto] gap-2">
+                        <div>1.1 Vulnerability Overview</div>
+                        <div>3</div>
+                    </div>
+                    <div class="grid grid-cols-[1fr_auto] gap-2">
+                        <div>1.2 Detailed Summary</div>
+                        <div>3</div>
+                    </div>
+                </div>
+
+                <!-- 2. Technical Report -->
+                <div class="grid grid-cols-[1fr_auto] gap-2 mt-3">
+                    <div>2. Technical Report</div>
+                    <div>4</div>
+                </div>
+                <div class="pl-6 space-y-1 text-slate-600 text-xs">
+                    <div class="grid grid-cols-[1fr_auto] gap-2">
+                        <div>2.1 Methodologies and Standards</div>
+                        <div>4</div>
+                    </div>
+                    <div class="grid grid-cols-[1fr_auto] gap-2">
+                        <div>2.2 Scope</div>
+                        <div>4</div>
+                    </div>
+                    <div class="grid grid-cols-[1fr_auto] gap-2">
+                        <div>2.3 Information Gathering</div>
+                        <div>4</div>
+                    </div>
+                </div>
+
+                <!-- 3. Detailed Findings -->
+                <div class="grid grid-cols-[1fr_auto] gap-2 mt-3">
+                    <div>3. Detailed Findings</div>
+                    <div>5</div>
+                </div>
+                <div id="tocVulnList" class="pl-6 space-y-1 text-slate-500 text-xs">
+                    <!-- JS will inject: 3.1 [Title] ... [Page] -->
+                </div>
+
+                <!-- 4. Summary -->
+                <div class="grid grid-cols-[1fr_auto] gap-2 mt-3">
+                    <div>4. Summary</div>
+                    <div id="tocSummaryPage">-</div>
+                </div>
+
+                <!-- 5. Glossary -->
+                <div class="grid grid-cols-[1fr_auto] gap-2 mt-3">
+                    <div>5. Glossary</div>
+                    <div id="tocGlossaryPage">-</div>
+                </div>
+                <div class="pl-6 space-y-1 text-slate-600 text-xs">
+                    <div class="grid grid-cols-[1fr_auto] gap-2">
+                        <div>5.1 Reference Frameworks</div>
+                        <div id="tocGlossaryRefPage">-</div>
+                    </div>
+                    <div class="grid grid-cols-[1fr_auto] gap-2">
+                        <div>5.2 Severity Definitions</div>
+                        <div id="tocSeverityPage">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 3: Executive Summary -->
+    <div class="report-page flex flex-col relative">
+        <!-- Header -->
+        <div class="flex justify-between items-end border-b-2 border-cyan-500 pb-2 mb-8 relative">
+            <div class="flex items-center gap-4">
+                <div class="header-logo h-10">
+                    <!-- JS Injected Logo -->
+                </div>
+            </div>
+            <div class="absolute left-1/2 bottom-2 -translate-x-1/2 text-center">
+                <div class="text-sm font-medium text-slate-800">Penetration Testing Report</div>
+                <div class="text-xs text-red-500 font-medium tracking-wider">Confidential</div>
+            </div>
+            <div class="text-sm font-medium text-slate-500">2</div>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 px-4">
+            <h1 class="text-2xl font-bold text-slate-900 mb-6 border-l-8 border-blue-600 pl-4">1. Executive Summary
+            </h1>
+
+            <!-- 1. Intro Text (Smaller Font) -->
+            <div class="bg-slate-50 border border-slate-100 rounded-xl p-5 mb-8 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                <p id="execSummaryText" class="text-slate-600 leading-relaxed text-lg font-light">
+                    <!-- JS Injected Text -->
+                    Loading summary...
+                </p>
+            </div>
+
+            <!-- 1.1 Total Vulnerabilities -->
+            <div class="flex items-center gap-4 mb-4">
+                <h2 class="text-base font-semibold text-slate-700 uppercase tracking-wider">1.1 Vulnerability
+                    Overview
+                </h2>
+                <div class="h-px bg-slate-200 flex-1"></div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-3 mb-8">
+                <!-- Critical -->
+                <div
+                    class="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-1">Critical
+                            </div>
+                            <div class="text-[10px] text-slate-400">Immediate Action</div>
+                        </div>
+                        <div class="p-1.5 bg-red-50 rounded-lg group-hover:bg-red-100 transition-colors">
+                            <i class="fas fa-radiation text-red-500 text-xs"></i>
+                        </div>
+                    </div>
+                    <div id="countCritical" class="text-3xl font-bold text-slate-800 mt-2">0</div>
+                </div>
+
+                <!-- High -->
+                <div
+                    class="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-orange-500"></div>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="text-[10px] font-bold text-orange-500 uppercase tracking-wider mb-1">High
+                            </div>
+                            <div class="text-[10px] text-slate-400">Urgent Fix</div>
+                        </div>
+                        <div class="p-1.5 bg-orange-50 rounded-lg group-hover:bg-orange-100 transition-colors">
+                            <i class="fas fa-exclamation-triangle text-orange-500 text-xs"></i>
+                        </div>
+                    </div>
+                    <div id="countHigh" class="text-3xl font-bold text-slate-800 mt-2">0</div>
+                </div>
+
+                <!-- Medium -->
+                <div
+                    class="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-yellow-400"></div>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="text-[10px] font-bold text-yellow-600 uppercase tracking-wider mb-1">Medium
+                            </div>
+                            <div class="text-[10px] text-slate-400">Scheduled Fix</div>
+                        </div>
+                        <div class="p-1.5 bg-yellow-50 rounded-lg group-hover:bg-yellow-100 transition-colors">
+                            <i class="fas fa-bug text-yellow-500 text-xs"></i>
+                        </div>
+                    </div>
+                    <div id="countMedium" class="text-3xl font-bold text-slate-800 mt-2">0</div>
+                </div>
+
+                <!-- Low -->
+                <div
+                    class="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="text-[10px] font-bold text-green-600 uppercase tracking-wider mb-1">Low
+                            </div>
+                            <div class="text-[10px] text-slate-400">Best Practice</div>
+                        </div>
+                        <div class="p-1.5 bg-green-50 rounded-lg group-hover:bg-green-100 transition-colors">
+                            <i class="fas fa-info-circle text-green-500 text-xs"></i>
+                        </div>
+                    </div>
+                    <div id="countLow" class="text-3xl font-bold text-slate-800 mt-2">0</div>
+                </div>
+            </div>
+
+            <!-- 1.2 Summary Table -->
+            <div class="flex items-center gap-4 mb-4 break-inside-avoid">
+                <h2 class="text-base font-semibold text-slate-700 uppercase tracking-wider">1.2 Detailed Summary
+                </h2>
+                <div class="h-px bg-slate-200 flex-1"></div>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 overflow-hidden shadow-sm break-inside-avoid">
+                <table class="w-full text-xs text-left">
+                    <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                        <tr>
+                            <th class="py-3 px-4 font-bold w-12 text-center">#</th>
+                            <th class="py-3 px-4 font-bold w-1/3">OWASP Top 10</th>
+                            <th class="py-3 px-4 font-bold">Vulnerability Name</th>
+                            <th class="py-3 px-4 font-bold w-24 text-center">Severity</th>
+                            <th class="py-3 px-4 font-bold w-16 text-center">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody id="execTableBody" class="divide-y divide-slate-100 bg-white">
+                        <!-- JS Injected Rows -->
+                    </tbody>
+                    <tfoot class="bg-slate-50 font-bold text-slate-700 border-t border-slate-200">
+                        <tr>
+                            <td colspan="4"
+                                class="py-3 px-4 text-right uppercase text-[10px] tracking-wider text-slate-500">
+                                Total
+                                Vulnerabilities Found</td>
+                            <td id="execTableTotal" class="py-3 px-4 text-center text-base text-blue-600">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 3: Technical Report -->
+    <div class="report-page flex flex-col relative">
+        <!-- Header -->
+        <div class="flex justify-between items-end border-b-2 border-cyan-500 pb-2 mb-8 relative">
+            <div class="flex items-center gap-4">
+                <div class="header-logo h-10">
+                    <!-- JS Injected Logo -->
+                </div>
+            </div>
+            <div class="absolute left-1/2 bottom-2 -translate-x-1/2 text-center">
+                <div class="text-sm font-medium text-slate-800">Penetration Testing Report</div>
+                <div class="text-xs text-red-500 font-medium tracking-wider">Confidential</div>
+            </div>
+            <div class="text-sm font-medium text-slate-500">3</div>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 px-4">
+            <h1 class="text-2xl font-bold text-slate-900 mb-6 border-l-8 border-blue-600 pl-4">2. Technical Report
+            </h1>
+
+            <p class="text-slate-700 mb-6 leading-relaxed text-sm">
+                การทดสอบทดสอบเจาะระบบได้ทำการทดสอบเจาะระบบ จำนวน 1 ระบบ โดยมีรายละเอียด ดังนี้<br>
+                <span class="font-semibold text-slate-900">ชื่อระบบ :</span> <span
+                    id="techSystemName">Loading...</span><br>
+                <span class="font-semibold text-slate-900">URL :</span> <span id="techUrl"
+                    class="text-blue-600">Loading...</span>
+            </p>
+
+            <!-- 2.1 Methodologies -->
+            <div class="mb-6 break-inside-avoid">
+                <h2
+                    class="text-base font-semibold text-slate-700 uppercase tracking-wider mb-2 border-b border-slate-200 pb-1">
+                    2.1 Methodologies and Standards</h2>
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                    <p class="text-slate-700 mb-2 text-sm">การทดสอบเจาะระบบอ้างอิงมาตรฐานในการทดสอบเจาะระบบ ดังนี้
+                    </p>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+                            <span class="text-slate-700 font-medium">2.1.1 NIST SP 800-115</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+                            <span id="techFrameworks" class="text-slate-700 font-medium">2.1.2 Open Web Application
+                                Security Project Top 10 2021</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2.2 Scope -->
+            <div class="mb-6 break-inside-avoid">
+                <h2
+                    class="text-base font-semibold text-slate-700 uppercase tracking-wider mb-2 border-b border-slate-200 pb-1">
+                    2.2 Scope</h2>
+                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <table class="w-full text-xs text-left">
+                        <tbody class="divide-y divide-slate-100">
+                            <!-- Rows injected or static structure with IDs -->
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="py-2 px-4 bg-slate-50 font-semibold text-slate-600 w-1/3">ชื่อระบบ</td>
+                                <td class="py-2 px-4 text-slate-800" id="scopeSystem"></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="py-2 px-4 bg-slate-50 font-semibold text-slate-600">URL</td>
+                                <td class="py-2 px-4 text-blue-600 font-mono" id="scopeUrl"></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="py-2 px-4 bg-slate-50 font-semibold text-slate-600">รูปแบบ</td>
+                                <td class="py-2 px-4 text-slate-800" id="scopeFormat"></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="py-2 px-4 bg-slate-50 font-semibold text-slate-600">สภาพแวดล้อม</td>
+                                <td class="py-2 px-4 text-slate-800" id="scopeEnv"></td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="py-2 px-4 bg-slate-50 font-semibold text-slate-600">ช่วงเวลา</td>
+                                <td class="py-2 px-4 text-slate-800" id="scopeDate"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2.3 Information Gathering -->
+            <div class="mb-6 break-inside-avoid">
+                <h2
+                    class="text-base font-semibold text-slate-700 uppercase tracking-wider mb-2 border-b border-slate-200 pb-1">
+                    2.3 Information Gathering</h2>
+                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <table class="w-full text-xs text-left">
+                        <tbody class="divide-y divide-slate-100">
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="py-2 px-4 bg-slate-50 font-semibold text-slate-600 w-1/3">Host IP Address
+                                </td>
+                                <td class="py-2 px-4 text-slate-800 font-mono" id="infoIp">Pending Scan</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="py-2 px-4 bg-slate-50 font-semibold text-slate-600">Domain Name</td>
+                                <td class="py-2 px-4 text-slate-800" id="infoDomain">Pending Scan</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="py-2 px-4 bg-slate-50 font-semibold text-slate-600">Ports Open</td>
+                                <td class="py-2 px-4 text-slate-800 font-mono" id="infoPort">Pending Scan</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="py-2 px-4 bg-slate-50 font-semibold text-slate-600">Operating System</td>
+                                <td class="py-2 px-4 text-slate-800" id="infoOs">Pending Scan</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="py-2 px-4 bg-slate-50 font-semibold text-slate-600">Services &
+                                    Applications
+                                </td>
+                                <td class="py-2 px-4 text-slate-800" id="infoServer">Pending Scan</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 4+: Detailed Findings (Dynamic) -->
+    <div id="findingsContainer">
+        <!-- JS will inject .report-page elements here for each finding -->
+    </div>
+
+    <script src="/js/report-view.js"></script>
+</body>
+
+</html>

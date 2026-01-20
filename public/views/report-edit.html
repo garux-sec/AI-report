@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Report - Pentest AI</title>
+    <!-- Tailwind for utilities -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Main Theme Styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Override specific Tailwind forms plugin behaviors if they interfere */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            /* Make calendar icon white */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2 style="margin-bottom: 2rem;">Pentest AI</h2>
+            <nav>
+                <a href="/dashboard.html" class="nav-link">Dashboard</a>
+                <a href="/projects.html" class="nav-link">Projects</a>
+                <a href="#" class="nav-link active">Report Editor</a>
+                <a href="#" class="nav-link">My Reports</a>
+                <div class="nav-group">
+                    <div class="nav-link-header collapsed" onclick="toggleSubmenu('settings-submenu')">
+                        <span>Settings</span>
+                        <span class="arrow">▼</span>
+                    </div>
+                    <div class="submenu collapsed" id="settings-submenu">
+                        <a href="/settings/frameworks.html" class="nav-sub-link">Frameworks</a>
+                        <a href="/settings/users.html" class="nav-sub-link">Users</a>
+                        <a href="/settings/ai-connections.html" class="nav-sub-link">AI Connections</a>
+                    </div>
+                </div>
+            </nav>
+            <button class="logout-btn" id="logoutBtn" style="margin-top:auto;">Logout</button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content" style="overflow-y: auto;">
+
+            <!-- Main Glass Card with padding -->
+            <div class="card relative overflow-hidden" style="padding: 2.5rem;">
+                <!-- Background Accent -->
+                <div
+                    style="position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 50%); pointer-events:none;">
+                </div>
+
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between mb-8 border-b border-gray-700 pb-4">
+                        <div>
+                            <h1 class="text-2xl font-bold text-white mb-1"><i
+                                    class="fas fa-file-contract mr-3 text-indigo-400"></i>Generate Report</h1>
+                            <p class="text-gray-400 text-sm">Create a comprehensive penetration testing report.</p>
+                        </div>
+                        <div
+                            class="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs">
+                            Editor Mode
+                        </div>
+                    </div>
+
+                    <form id="reportForm">
+                        <input type="hidden" id="reportId">
+                        <input type="hidden" id="projectId">
+
+                        <!-- Section: Target Information -->
+                        <div class="mb-8">
+                            <h3 class="text-lg font-semibold text-gray-300 mb-4 flex items-center">
+                                <i class="fas fa-bullseye mr-2 text-indigo-400"></i> Target Information
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="group">
+                                    <label
+                                        class="block mb-2 font-medium text-gray-300 group-hover:text-white transition-colors">
+                                        <i
+                                            class="fas fa-server mr-2 text-gray-500 group-hover:text-indigo-400"></i>System
+                                        Name
+                                    </label>
+                                    <input type="text" id="systemName"
+                                        class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white"
+                                        placeholder="e.g. ERP System">
+                                </div>
+
+                                <div class="group">
+                                    <label
+                                        class="block mb-2 font-medium text-gray-300 group-hover:text-white transition-colors">
+                                        <i class="fas fa-globe mr-2 text-gray-500 group-hover:text-indigo-400"></i>URL
+                                    </label>
+                                    <input type="text" id="url"
+                                        class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white"
+                                        placeholder="https://example.com">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section: Scope & Context -->
+                        <div class="mb-8">
+                            <h3 class="text-lg font-semibold text-gray-300 mb-4 flex items-center">
+                                <i class="fas fa-layer-group mr-2 text-indigo-400"></i> Scope & Context
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="group">
+                                    <label
+                                        class="block mb-2 font-medium text-gray-300 group-hover:text-white transition-colors">
+                                        <i
+                                            class="fas fa-box-open mr-2 text-gray-500 group-hover:text-indigo-400"></i>Format
+                                    </label>
+                                    <select id="format"
+                                        class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white">
+                                        <option value="Blackbox" class="bg-slate-800">Black Box</option>
+                                        <option value="Greybox" class="bg-slate-800">Grey Box</option>
+                                        <option value="Whitebox" class="bg-slate-800">White Box</option>
+                                    </select>
+                                </div>
+
+                                <div class="group">
+                                    <label
+                                        class="block mb-2 font-medium text-gray-300 group-hover:text-white transition-colors">
+                                        <i
+                                            class="fas fa-network-wired mr-2 text-gray-500 group-hover:text-indigo-400"></i>Environment
+                                    </label>
+                                    <select id="environment"
+                                        class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white">
+                                        <option value="Production" class="bg-slate-800">Production</option>
+                                        <option value="UAT" class="bg-slate-800">UAT</option>
+                                        <option value="SIT" class="bg-slate-800">SIT</option>
+                                        <option value="DEV" class="bg-slate-800">Development</option>
+                                    </select>
+                                </div>
+
+                                <div class="group">
+                                    <label
+                                        class="block mb-2 font-medium text-gray-300 group-hover:text-white transition-colors">
+                                        <i
+                                            class="far fa-calendar-alt mr-2 text-gray-500 group-hover:text-indigo-400"></i>Start
+                                        Date
+                                    </label>
+                                    <input type="date" id="startDate"
+                                        class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white">
+                                </div>
+
+                                <div class="group">
+                                    <label
+                                        class="block mb-2 font-medium text-gray-300 group-hover:text-white transition-colors">
+                                        <i
+                                            class="far fa-calendar-check mr-2 text-gray-500 group-hover:text-indigo-400"></i>End
+                                        Date
+                                    </label>
+                                    <input type="date" id="endDate"
+                                        class="w-full bg-slate-800/50 border border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg py-3 px-4 transition-all text-white">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Vulnerabilities -->
+                        <div
+                            class="mb-8 bg-slate-800/30 rounded-xl border border-dashed border-gray-600 p-6 transition-all hover:border-indigo-500/50">
+                            <div class="flex justify-between items-center mb-4">
+                                <label class="text-lg font-semibold text-gray-300 flex items-center">
+                                    <i class="fas fa-bug mr-2 text-red-400"></i> Vulnerabilities
+                                </label>
+                                <span class="text-xs bg-slate-700 text-gray-300 px-2 py-1 rounded-full" id="vulnCount">0
+                                    Found</span>
+                            </div>
+
+                            <div id="fileList" class="space-y-3 mb-4 min-h-[50px]">
+                                <!-- Dynamic content will look like cards -->
+                            </div>
+
+                            <button type="button" onclick="openVulnModal()"
+                                class="w-full py-3 border-2 border-dashed border-gray-600 rounded-lg text-gray-400 hover:text-indigo-400 hover:border-indigo-400 hover:bg-indigo-500/5 transition-all flex items-center justify-center group">
+                                <div
+                                    class="bg-gray-700/50 group-hover:bg-indigo-500/20 p-2 rounded-full mr-2 transition-all">
+                                    <i class="fas fa-plus"></i>
+                                </div>
+                                <span>Add Vulnerability Finding</span>
+                            </button>
+                        </div>
+
+                        <div class="flex gap-4 pt-4 border-t border-gray-700">
+                            <button type="button" onclick="window.history.back()"
+                                class="px-6 py-3 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white transition-all font-medium">
+                                Cancel
+                            </button>
+
+                            <div class="flex-1 flex gap-3">
+                                <!-- Manual Save -->
+                                <button type="button" onclick="saveAndGenerate()"
+                                    class="flex-1 px-4 py-3 rounded-lg border border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white font-medium transition-all flex justify-center items-center">
+                                    <i class="fas fa-save mr-2"></i> Manual Save
+                                </button>
+
+                                <!-- AI Save -->
+                                <button type="button" onclick="saveWithAI()"
+                                    class="flex-[2] px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-indigo-500/30 transform hover:-translate-y-0.5 transition-all flex justify-center items-center group">
+                                    <i class="fas fa-magic mr-2 group-hover:animate-pulse"></i> AI Auto-Generate & Save
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vulnerability Modal (Dark Theme) -->
+    <!-- Vulnerability Modal (Dark Theme Premium) -->
+    <div id="vulnModal" class="fixed inset-0 z-[100] hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-900/75 backdrop-blur-sm transition-opacity" onclick="closeVulnModal()"></div>
+
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div
+                class="relative transform overflow-hidden rounded-xl bg-slate-900 border border-gray-700 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+
+                <!-- Header -->
+                <div class="bg-gray-800/50 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold leading-6 text-white flex items-center" id="modal-title">
+                        <i class="fas fa-bug mr-2 text-red-400"></i> Add Vulnerability
+                    </h3>
+                    <button type="button" class="text-gray-400 hover:text-white focus:outline-none transition-colors"
+                        onclick="closeVulnModal()">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Body -->
+                <div class="px-6 py-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Title -->
+                        <div class="col-span-1 md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Title (ชื่อช่องโหว่)</label>
+                            <input type="text" id="vTitle"
+                                class="w-full bg-slate-800 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 transition-all shadow-sm"
+                                placeholder="Vulnerability Title">
+                        </div>
+
+                        <!-- Severity -->
+                        <!-- CVSS Calculator -->
+                        <div class="col-span-1 md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">CVSS Severity & Score</label>
+
+                            <!-- Score Display -->
+                            <div
+                                class="flex items-center gap-4 mb-4 p-4 bg-slate-800/50 rounded-lg border border-gray-700">
+                                <div class="text-center">
+                                    <div class="text-3xl font-bold text-white" id="cvssScore">0.0</div>
+                                    <div class="text-xs text-gray-400">Score</div>
+                                </div>
+                                <div class="border-l border-gray-700 h-10 mx-2"></div>
+                                <div class="flex-1">
+                                    <div id="cvssSeverityBadge"
+                                        class="inline-block px-3 py-1 rounded text-sm font-bold bg-gray-700 text-gray-300 mb-1">
+                                        None</div>
+                                    <input type="text" id="cvssVector" readonly
+                                        class="w-full bg-transparent border-none p-0 text-xs text-gray-400 focus:ring-0 font-mono"
+                                        placeholder="CVSS Vector String">
+                                    <input type="hidden" id="vSeverity"> <!-- Hidden input for form compatibility -->
+                                    <input type="hidden" id="cvssVersion" value="3.1">
+                                </div>
+                            </div>
+
+                            <!-- Version Tabs -->
+                            <div class="flex border-b border-gray-700 mb-4">
+                                <button type="button" onclick="switchCvssVersion('3.1')" id="tab-v3"
+                                    class="px-4 py-2 text-sm font-medium text-indigo-400 border-b-2 border-indigo-400 focus:outline-none transition-colors">CVSS
+                                    v3.1</button>
+                                <button type="button" onclick="switchCvssVersion('4.0')" id="tab-v4"
+                                    class="px-4 py-2 text-sm font-medium text-gray-400 border-b-2 border-transparent hover:text-gray-300 focus:outline-none transition-colors">CVSS
+                                    v4.0</button>
+                            </div>
+
+                            <!-- Calculator Metrics (Grid) -->
+                            <div id="cvss-metrics-container" class="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                                <!-- Generated by JS -->
+                                <div class="text-center text-gray-500 py-4">Loading Calculator...</div>
+                            </div>
+                        </div>
+
+                        <!-- OWASP -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">OWASP Category</label>
+                            <input type="text" id="vOwasp"
+                                class="w-full bg-slate-800 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 transition-all shadow-sm"
+                                placeholder="e.g. A01:2021">
+                        </div>
+
+                        <!-- Status -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Status</label>
+                            <select id="vStatus"
+                                class="w-full bg-slate-800 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm">
+                                <option value="Open">Open</option>
+                                <option value="Fixed">Fixed</option>
+                                <option value="Remediated">Remediated</option>
+                                <option value="Accepted">Accepted</option>
+                                <option value="False Positive">False Positive</option>
+                            </select>
+                        </div>
+
+                        <!-- Affected URL -->
+                        <div class="col-span-1 md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Affected URL/Component</label>
+                            <input type="text" id="vAffected"
+                                class="w-full bg-slate-800 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 transition-all shadow-sm"
+                                placeholder="URL or Component">
+                        </div>
+
+                        <!-- Details -->
+                        <div class="col-span-1 md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Details / Impact</label>
+                            <textarea id="vDetail" rows="3"
+                                class="w-full bg-slate-800 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 transition-all shadow-sm resize-y"
+                                placeholder="Describe the vulnerability..."></textarea>
+                        </div>
+
+                        <!-- Fix -->
+                        <div class="col-span-1 md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Recommendation (Fix)</label>
+                            <textarea id="vFix" rows="3"
+                                class="w-full bg-slate-800 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 transition-all shadow-sm resize-y"
+                                placeholder="How to fix it..."></textarea>
+                        </div>
+
+                        <!-- Evidence -->
+                        <div class="col-span-1 md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Evidence Image</label>
+                            <input type="file" id="vFile"
+                                class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/10 file:text-indigo-400 hover:file:bg-indigo-500/20 cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bg-gray-800/30 px-6 py-4 sm:flex sm:flex-row-reverse border-t border-gray-700">
+                    <button type="button" onclick="addVulnerability()"
+                        class="inline-flex w-full justify-center rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto transition-all">Add
+                        Vulnerability</button>
+                    <button type="button" onclick="closeVulnModal()"
+                        class="mt-3 inline-flex w-full justify-center rounded-lg bg-transparent px-3 py-2 text-sm font-semibold text-gray-300 shadow-sm ring-1 ring-inset ring-gray-600 hover:bg-gray-800 sm:mt-0 sm:w-auto transition-all">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="/js/cvss_calculator.js"></script>
+    <script src="/js/report-edit.js"></script>
+    <script>
+        function toggleSubmenu(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.toggle('collapsed');
+                el.previousElementSibling.classList.toggle('collapsed');
+            }
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '/index.html';
+        });
+    </script>
+    <!-- AI Progress Overlay -->
+    <div id="aiProgressOverlay"
+        class="fixed inset-0 z-[200] hidden flex items-center justify-center bg-gray-900/90 backdrop-blur-sm">
+        <div class="text-center max-w-md p-6">
+            <div class="mb-4 inline-block relative">
+                <div class="w-16 h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin">
+                </div>
+                <i
+                    class="fas fa-robot absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-indigo-400 text-xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Enhancing Report with AI</h3>
+            <p id="aiProgressText" class="text-gray-400 mb-4">Analyzing vulnerabilities...</p>
+            <div class="w-full bg-gray-700 rounded-full h-2 mb-2 overflow-hidden">
+                <div id="aiProgressBar" class="bg-indigo-500 h-2 rounded-full transition-all duration-300"
+                    style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

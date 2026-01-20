@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Details - Pentest AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .project-header {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: flex-start;
+            gap: 2rem;
+        }
+
+        .project-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: #1e293b;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .project-info {
+            flex: 1;
+        }
+
+        .project-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .meta-item label {
+            display: block;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 0.25rem;
+        }
+
+        .meta-item div {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        /* Chart Card Styles */
+        .chart-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 320px;
+        }
+
+        .chart-header {
+            width: 100%;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.5rem;
+        }
+
+        .chart-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <div class="sidebar">
+            <h2 style="margin-bottom: 2rem;">Pentest AI</h2>
+            <nav>
+                <a href="/dashboard.html" class="nav-link">Dashboard</a>
+                <a href="/projects.html" class="nav-link active">Projects</a>
+                <a href="#" class="nav-link">New Report</a>
+                <a href="#" class="nav-link">My Reports</a>
+                <div class="nav-group">
+                    <div class="nav-link-header collapsed" onclick="toggleSubmenu('settings-submenu')">
+                        <span>Settings</span>
+                        <span class="arrow">▼</span>
+                    </div>
+                    <div class="submenu collapsed" id="settings-submenu">
+                        <a href="/settings/frameworks.html" class="nav-sub-link">Frameworks</a>
+                        <a href="/settings/users.html" class="nav-sub-link">Users</a>
+                        <a href="/settings/ai-connections.html" class="nav-sub-link">AI Connections</a>
+                    </div>
+                </div>
+            </nav>
+            <button class="logout-btn" id="logoutBtn" style="margin-top:auto;">Logout</button>
+        </div>
+
+        <div class="main-content">
+            <a href="/projects.html"
+                style="color:#94a3b8; text-decoration:none; display:inline-flex; align-items:center; margin-bottom:1rem; font-size:0.9rem;">
+                ← Back to Projects
+            </a>
+
+            <div id="projectHeader" class="project-header">
+                <!-- Injected via JS -->
+                <div style="width:100%; text-align:center;">Loading Project...</div>
+            </div>
+
+            <!-- Dashboard Charts -->
+            <div id="statsSection" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 hidden">
+                <!-- Chart 1: Severity -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title"><i class="fas fa-shield-alt mr-2 text-indigo-400"></i>Vulnerabilities
+                            by Severity</div>
+                    </div>
+                    <div class="relative w-full h-full flex items-center justify-center">
+                        <canvas id="severityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Status Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title"><i class="fas fa-list-ul mr-2 text-indigo-400"></i>Reports by Status
+                        </div>
+                    </div>
+                    <div class="relative w-full h-full flex items-center justify-center">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 3: OWASP -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title"><i class="fas fa-book mr-2 text-indigo-400"></i>Top OWASP Categories
+                        </div>
+                    </div>
+                    <div class="relative w-full h-full flex items-center justify-center">
+                        <canvas id="owaspChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                    <h3>Project Reports</h3>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <input type="text" id="reportSearch" placeholder="Search reports..."
+                                class="bg-slate-800 border border-gray-600 rounded-lg py-1.5 px-3 pl-9 text-sm text-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 w-64 shadow-sm">
+                            <i
+                                class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
+                        </div>
+                        <button class="btn-sm whitespace-nowrap" onclick="createNewReport()">+ New Report</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table id="reportTable" class="w-full">
+                        <thead>
+                            <tr>
+                                <th class="cursor-pointer hover:text-white transition-colors group"
+                                    onclick="sortTable('systemName')">
+                                    <div class="flex items-center gap-1">
+                                        System Name
+                                        <i class="fas fa-sort text-[10px] text-gray-500 group-hover:text-gray-300"></i>
+                                    </div>
+                                </th>
+                                <th class="cursor-pointer hover:text-white transition-colors group"
+                                    onclick="sortTable('createdAt')">
+                                    <div class="flex items-center gap-1">
+                                        Date
+                                        <i class="fas fa-sort text-[10px] text-gray-500 group-hover:text-gray-300"></i>
+                                    </div>
+                                </th>
+                                <th class="cursor-pointer hover:text-white transition-colors group"
+                                    onclick="sortTable('status')">
+                                    <div class="flex items-center gap-1">
+                                        Status
+                                        <i class="fas fa-sort text-[10px] text-gray-500 group-hover:text-gray-300"></i>
+                                    </div>
+                                </th>
+                                <th class="cursor-pointer hover:text-white transition-colors group"
+                                    onclick="sortTable('vulnCount')">
+                                    <div class="flex items-center gap-1">
+                                        Vulnerabilities
+                                        <i class="fas fa-sort text-[10px] text-gray-500 group-hover:text-gray-300"></i>
+                                    </div>
+                                </th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Modern Pagination -->
+                <div id="paginationControls"
+                    class="flex flex-col sm:flex-row justify-between items-center mt-4 pt-4 border-t border-gray-700/50 gap-4">
+                    <div class="text-sm text-gray-400" id="pageInfo">
+                        Showing <span class="font-medium text-white">0</span> to <span
+                            class="font-medium text-white">0</span> of <span class="font-medium text-white">0</span>
+                        results
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="prevBtn"
+                            class="flex items-center px-4 py-2 text-sm font-medium text-white bg-slate-800 border border-gray-600 rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm">
+                            <i class="fas fa-chevron-left mr-2 text-xs"></i> Previous
+                        </button>
+                        <div id="pageNumbers" class="hidden sm:flex gap-1">
+                            <!-- Page numbers injected here -->
+                        </div>
+                        <button id="nextBtn"
+                            class="flex items-center px-4 py-2 text-sm font-medium text-white bg-slate-800 border border-gray-600 rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm">
+                            Next <i class="fas fa-chevron-right ml-2 text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- New Report Modal -->
+        <!-- New Report Modal (Premium) -->
+        <div id="reportModal" class="fixed inset-0 z-[100] hidden overflow-y-auto" aria-labelledby="modal-title"
+            role="dialog" aria-modal="true">
+            <!-- Backdrop -->
+            <div class="fixed inset-0 bg-gray-900/75 backdrop-blur-sm transition-opacity" onclick="closeReportModal()">
+            </div>
+
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div
+                    class="relative transform overflow-hidden rounded-xl bg-slate-900 border border-gray-700 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-xl">
+
+                    <!-- Header -->
+                    <div class="bg-gray-800/50 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+                        <h3 class="text-lg font-semibold leading-6 text-white" id="modal-title">New Report</h3>
+                        <button type="button"
+                            class="text-gray-400 hover:text-white focus:outline-none transition-colors"
+                            onclick="closeReportModal()">
+                            <i class="fas fa-times text-lg"></i>
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="px-6 py-6">
+                        <form id="reportForm">
+                            <div class="mb-5">
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Report Name</label>
+                                <input type="text" id="systemName"
+                                    class="w-full bg-slate-800 border border-gray-600 rounded-lg py-2.5 px-3 text-white focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder-gray-500 transition-all shadow-sm"
+                                    placeholder="e.g. Q1 Security Audit" required>
+                            </div>
+
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Security Frameworks</label>
+                                <div id="frameworksList" class="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto pr-1">
+                                    <!-- Framework items will be injected here with premium styling -->
+                                    <div class="text-gray-500 text-sm italic py-2">Loading frameworks...</div>
+                                </div>
+                            </div>
+
+                            <!-- Hidden defaults -->
+                            <input type="hidden" id="reportFormat" value="Blackbox">
+                            <input type="hidden" id="reportEnv" value="Production">
+
+                            <!-- Footer Actions -->
+                            <div class="pt-2">
+                                <button type="submit"
+                                    class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform hover:-translate-y-0.5 transition-all">
+                                    Create Report
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="/js/project-dashboard.js"></script>
+</body>
+
+</html>

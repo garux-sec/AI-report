@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frameworks - Pentest AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar will be loaded here or static for now -->
+        <div class="sidebar">
+            <h2 style="margin-bottom: 2rem;">Pentest AI</h2>
+            <nav>
+                <a href="/dashboard.html" class="nav-link">Dashboard</a>
+                <a href="/projects.html" class="nav-link">Projects</a>
+                <a href="#" class="nav-link">New Report</a>
+                <a href="#" class="nav-link">My Reports</a>
+                <div class="nav-group">
+                    <div class="nav-link-header" onclick="toggleSubmenu('settings-submenu')">
+                        <span>Settings</span>
+                        <span class="arrow">▼</span>
+                    </div>
+                    <div class="submenu" id="settings-submenu">
+                        <a href="/settings/frameworks.html" class="nav-sub-link active">Frameworks</a>
+                        <a href="/settings/users.html" class="nav-sub-link">Users</a>
+                        <a href="/settings/ai-connections.html" class="nav-sub-link">AI Connections</a>
+                    </div>
+                </div>
+            </nav>
+            <button class="logout-btn" id="logoutBtn" style="margin-top:auto;">Logout</button>
+        </div>
+
+        <div class="main-content">
+            <h1>Security Frameworks</h1>
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>Manage Frameworks</h3>
+                    <button class="btn-sm" onclick="openModal()">+ Add Framework</button>
+                </div>
+                <table id="frameworkTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Year</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Framework Modal -->
+    <div id="frameworkModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Add Framework</h2>
+            <form id="frameworkForm">
+                <input type="hidden" id="frameworkId">
+                <input type="text" id="name" placeholder="Framework Name" required>
+                <input type="text" id="year" placeholder="Year" required>
+                <select id="type"
+                    style="width:100%; padding:0.75rem; margin-bottom:1rem; border-radius:8px; background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border);">
+                    <option value="Web">Web</option>
+                    <option value="API">API</option>
+                    <option value="LLM">LLM</option>
+                    <option value="Mobile">Mobile</option>
+                    <option value="IoT">IoT</option>
+                    <option value="Other">Other</option>
+                </select>
+                <textarea id="itemsJson" rows="10" placeholder='Items (JSON format)'
+                    style="width:100%; background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border); padding:1rem; border-radius:8px; margin-bottom:1rem;"></textarea>
+                <button type="submit">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/frameworks.js"></script>
+</body>
+
+</html>

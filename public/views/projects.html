@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects - Pentest AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <div class="sidebar">
+            <h2 style="margin-bottom: 2rem;">Pentest AI</h2>
+            <nav>
+                <a href="/dashboard.html" class="nav-link">Dashboard</a>
+                <a href="/projects.html" class="nav-link active">Projects</a>
+                <a href="#" class="nav-link">New Report</a>
+                <a href="#" class="nav-link">My Reports</a>
+                <div class="nav-group">
+                    <div class="nav-link-header collapsed" onclick="toggleSubmenu('settings-submenu')">
+                        <span>Settings</span>
+                        <span class="arrow">▼</span>
+                    </div>
+                    <div class="submenu collapsed" id="settings-submenu">
+                        <a href="/settings/frameworks.html" class="nav-sub-link">Frameworks</a>
+                        <a href="/settings/users.html" class="nav-sub-link">Users</a>
+                        <a href="/settings/ai-connections.html" class="nav-sub-link">AI Connections</a>
+                    </div>
+                </div>
+            </nav>
+            <button class="logout-btn" id="logoutBtn" style="margin-top:auto;">Logout</button>
+        </div>
+
+        <div class="main-content">
+            <h1>Projects</h1>
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3>Manage Projects</h3>
+                    <button class="btn-sm" onclick="openModal()">+ New Project</button>
+                </div>
+                <table id="projectTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Modal -->
+    <div id="projectModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">New Project</h2>
+            <form id="projectForm" enctype="multipart/form-data">
+                <input type="hidden" id="projectId">
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <input type="text" id="name" placeholder="Project Name *" required style="grid-column: span 2;">
+                    <input type="text" id="clientName" placeholder="Client Name">
+                    <input type="text" id="preparedBy" placeholder="Prepared By (Team Name)">
+
+                    <input type="text" id="pentesterName" placeholder="Pentester Name">
+                    <input type="text" id="pentesterPosition" placeholder="Position (e.g. Senior Pentester)">
+                    <input type="email" id="pentesterEmail" placeholder="Email" style="grid-column: span 2;">
+                </div>
+
+                <div style="margin: 1rem 0; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+                    <label style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-size:0.9rem;">Report
+                        Logo</label>
+                    <input type="file" id="logo" accept="image/*">
+
+                    <label style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-size:0.9rem;">Report
+                        Background</label>
+                    <input type="file" id="background" accept="image/*">
+                </div>
+
+                <textarea id="description" placeholder="Description (Optional)"
+                    style="width:100%; height:80px; padding:0.75rem; border-radius:8px; background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border); margin-bottom:1rem;"></textarea>
+
+                <select id="status"
+                    style="width:100%; padding:0.75rem; margin-bottom:1rem; border-radius:8px; background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border);">
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="archived">Archived</option>
+                </select>
+                <button type="submit">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/projects.js"></script>
+</body>
+
+</html>
