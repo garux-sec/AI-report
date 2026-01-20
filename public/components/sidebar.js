@@ -5,6 +5,27 @@ class AppSidebar extends HTMLElement {
 
     connectedCallback() {
         this.style.display = 'contents';
+        const userStr = localStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : {};
+        const isUser = user.role === 'user'; // Or check !== 'admin'
+
+        // Only show settings if NOT a regular user (or explicitly if admin)
+        // Assuming roles: 'admin', 'user'
+        const settingsHtml = !isUser ? `
+            <div class="nav-group">
+                <div class="nav-link-header" id="settings-header">
+                    <span>Settings</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="submenu" id="settings-submenu">
+                     <a href="/settings/frameworks.html" class="nav-sub-link">Frameworks</a>
+                     <a href="/settings/users.html" class="nav-sub-link">Users</a>
+                     <a href="/settings/ai-connections.html" class="nav-sub-link">AI Connections</a>
+                     <a href="/settings/kpi.html" class="nav-sub-link">KPI Settings</a>
+                </div>
+            </div>
+        ` : '';
+
         this.innerHTML = `
             <div class="sidebar">
                 <h2 style="margin-bottom: 2rem;">Pentest AI</h2>
@@ -19,18 +40,7 @@ class AppSidebar extends HTMLElement {
                          The sidebar link # might be a placeholder. Let's keep it consistent with what it was. -->
 
 
-                    <div class="nav-group">
-                        <div class="nav-link-header" id="settings-header">
-                            <span>Settings</span>
-                            <span class="arrow">▼</span>
-                        </div>
-                        <div class="submenu" id="settings-submenu">
-                            <a href="/settings/frameworks.html" class="nav-sub-link">Frameworks</a>
-                            <a href="/settings/users.html" class="nav-sub-link">Users</a>
-                            <a href="/settings/ai-connections.html" class="nav-sub-link">AI Connections</a>
-                            <a href="/settings/kpi.html" class="nav-sub-link">KPI Settings</a>
-                        </div>
-                    </div>
+                    ${settingsHtml}
                 </nav>
                 <button class="logout-btn" id="logoutBtn" style="margin-top:auto;">Logout</button>
             </div>
