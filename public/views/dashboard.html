@@ -13,57 +13,88 @@
 
 <body>
     <div class="dashboard-container">
-        <!-- Sidebar -->
-        <!-- Sidebar -->
         <app-sidebar></app-sidebar>
 
         <!-- Main Content -->
         <div class="main-content">
-            <div class="header">
+            <div class="header" style="margin-bottom: 0px;">
                 <h1>Dashboard</h1>
                 <div class="user-profile">
                     <span id="usernameDisplay">User</span>
                 </div>
             </div>
 
-            <div class="card-grid">
-                <div class="card">
-                    <h3>Recent Reports</h3>
-                    <p>No reports found.</p>
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div
+                    class="card p-6 flex flex-col items-center justify-center bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl">
+                    <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-2">Total Projects</h3>
+                    <span id="statProjects" class="text-4xl font-bold text-white">-</span>
                 </div>
-                <div class="card">
-                    <h3>System Stats</h3>
-                    <p>Running normally.</p>
+                <div
+                    class="card p-6 flex flex-col items-center justify-center bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl">
+                    <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-2">Total Reports</h3>
+                    <span id="statReports" class="text-4xl font-bold text-white">-</span>
                 </div>
-                <div class="card">
-                    <h3>AI Generation</h3>
-                    <button>Start New Scan</button>
+                <div
+                    class="card p-6 flex flex-col items-center justify-center bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl">
+                    <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-2">Total Vulnerabilities
+                    </h3>
+                    <span id="statVulns" class="text-4xl font-bold text-indigo-400">-</span>
                 </div>
             </div>
+
+            <!-- Charts Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Severity Chart -->
+                <div class="card p-6 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl">
+                    <h3 class="text-xl font-semibold text-white mb-6">Vulnerabilities by Severity</h3>
+                    <div class="relative h-64 w-full flex justify-center">
+                        <canvas id="severityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Status Chart -->
+                <div class="card p-6 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl">
+                    <h3 class="text-xl font-semibold text-white mb-6">Reports by Status</h3>
+                    <div class="relative h-64 w-full">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Critical Risks -->
+            <div class="card bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden">
+                <div class="p-6 border-b border-white/5">
+                    <h3 class="text-xl font-semibold text-white">Latest Critical & High Risks</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-indigo-500/10 text-indigo-200 text-sm uppercase tracking-wider">
+                                <th class="p-4 font-semibold">Vulnerability</th>
+                                <th class="p-4 font-semibold">System/Project</th>
+                                <th class="p-4 font-semibold">Severity</th>
+                                <th class="p-4 font-semibold">Status</th>
+                                <th class="p-4 font-semibold">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="riskTableBody" class="text-slate-300 divide-y divide-slate-700/50 text-sm">
+                            <tr>
+                                <td colspan="5" class="p-4 text-center text-slate-500">Loading risks...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/components/sidebar.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const userStr = localStorage.getItem('user');
-            if (!userStr) {
-                window.location.href = '/';
-                return;
-            }
-            const user = JSON.parse(userStr);
-            document.getElementById('usernameDisplay').textContent = user.username;
-        });
-
-        // Hook up New Report button from Sidebar if it exists
-        // Since sidebar is shadow-less (light dom), we can access elements after it renders
-        // But Custom Element renders somewhat asynchronously or synchronously?
-        // connectedCallback runs when inserted.
-        // We might need to wait or rely on event delegation if we want to hook 'New Report' to something specific here.
-        // dashboard.html doesn't seem to have specific New Report logic other than link # in original?
-        // Original: <a href="#" class="nav-link">New Report</a>
-        // So no specific logic needed here.
-    </script>
+    <script src="/js/dashboard.js"></script>
 </body>
 
 </html>

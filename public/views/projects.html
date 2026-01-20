@@ -41,39 +41,84 @@
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
             <h2 id="modalTitle">New Project</h2>
-            <form id="projectForm" enctype="multipart/form-data">
+            <form id="projectForm" enctype="multipart/form-data" class="space-y-4">
                 <input type="hidden" id="projectId">
 
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <input type="text" id="name" placeholder="Project Name *" required style="grid-column: span 2;">
-                    <input type="text" id="clientName" placeholder="Client Name">
-                    <input type="text" id="preparedBy" placeholder="Prepared By (Team Name)">
-
-                    <input type="text" id="pentesterName" placeholder="Pentester Name">
-                    <input type="text" id="pentesterPosition" placeholder="Position (e.g. Senior Pentester)">
-                    <input type="email" id="pentesterEmail" placeholder="Email" style="grid-column: span 2;">
+                <div>
+                    <label class="block text-base font-medium text-slate-300 mb-2">Project Name <span
+                            class="text-red-400">*</span></label>
+                    <input type="text" id="name" placeholder="Enter project name" required
+                        class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
                 </div>
 
-                <div style="margin: 1rem 0; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
-                    <label style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-size:0.9rem;">Report
-                        Logo</label>
-                    <input type="file" id="logo" accept="image/*">
-
-                    <label style="display:block; margin-bottom:0.5rem; color:#94a3b8; font-size:0.9rem;">Report
-                        Background</label>
-                    <input type="file" id="background" accept="image/*">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-base font-medium text-slate-300 mb-2">Client Name</label>
+                        <input type="text" id="clientName" placeholder="e.g. Acme Corp"
+                            class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-base font-medium text-slate-300 mb-2">Prepared By (Team)</label>
+                        <input type="text" id="preparedBy" placeholder="e.g. Red Team"
+                            class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+                    </div>
                 </div>
 
-                <textarea id="description" placeholder="Description (Optional)"
-                    style="width:100%; height:80px; padding:0.75rem; border-radius:8px; background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border); margin-bottom:1rem;"></textarea>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-base font-medium text-slate-300 mb-2">Pentester Name</label>
+                        <input type="text" id="pentesterName" placeholder="Lead Pentester"
+                            class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-base font-medium text-slate-300 mb-2">Position</label>
+                        <input type="text" id="pentesterPosition" placeholder="e.g. Senior Security Consultant"
+                            class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+                    </div>
+                </div>
 
-                <select id="status"
-                    style="width:100%; padding:0.75rem; margin-bottom:1rem; border-radius:8px; background:rgba(255,255,255,0.05); color:white; border:1px solid var(--glass-border);">
-                    <option value="active">Active</option>
-                    <option value="completed">Completed</option>
-                    <option value="archived">Archived</option>
-                </select>
-                <button type="submit">Save</button>
+                <div>
+                    <label class="block text-base font-medium text-slate-300 mb-2">Pentester Email</label>
+                    <input type="email" id="pentesterEmail" placeholder="contact@example.com"
+                        class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-white/5">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Report Logo</label>
+                        <input type="file" id="logo" accept="image/*"
+                            class="block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/10 file:text-indigo-300 hover:file:bg-indigo-500/20 cursor-pointer bg-slate-900/50 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Report Background</label>
+                        <input type="file" id="background" accept="image/*"
+                            class="block w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/10 file:text-indigo-300 hover:file:bg-indigo-500/20 cursor-pointer bg-slate-900/50 rounded-xl">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-base font-medium text-slate-300 mb-2">Description</label>
+                    <textarea id="description" rows="3" placeholder="Project description (optional)"
+                        class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-base font-medium text-slate-300 mb-2">Status</label>
+                    <select id="status"
+                        class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-lg text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors appearance-none">
+                        <option value="active">Active</option>
+                        <option value="completed">Completed</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
+                    <button type="button" onclick="closeModal()"
+                        class="px-4 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition w-auto">Cancel</button>
+                    <button type="submit"
+                        class="px-6 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium hover:opacity-90 transition shadow-lg shadow-indigo-500/20 w-auto">Save
+                        Project</button>
+                </div>
             </form>
         </div>
     </div>

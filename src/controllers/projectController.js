@@ -3,7 +3,8 @@ const Report = require('../models/Report');
 
 exports.getProjects = async (req, res) => {
     try {
-        const projects = await Project.find().sort({ updatedAt: -1 });
+        const query = { user: req.user.userId };
+        const projects = await Project.find(query).sort({ updatedAt: -1 });
         res.json(projects);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching projects' });
@@ -12,7 +13,7 @@ exports.getProjects = async (req, res) => {
 
 exports.getProjectById = async (req, res) => {
     try {
-        const project = await Project.findById(req.params.id);
+        const project = await Project.findOne({ _id: req.params.id, user: req.user.userId });
         if (!project) return res.status(404).json({ message: 'Project not found' });
         res.json(project);
     } catch (error) {
@@ -25,7 +26,10 @@ exports.createProject = async (req, res) => {
         console.log('Create Project Body:', req.body);
         console.log('Create Project Files:', req.files);
 
-        const projectData = { ...req.body };
+        const projectData = {
+            ...req.body,
+            user: req.user.userId // Auto-assign current user
+        };
         if (req.files) {
             if (req.files.logo) projectData.logoUrl = '/uploads/projects/' + req.files.logo[0].filename;
             if (req.files.background) projectData.backgroundUrl = '/uploads/projects/' + req.files.background[0].filename;

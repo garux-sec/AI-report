@@ -35,6 +35,7 @@ router.use('/reports', (req, res, next) => {
 router.post('/reports', auth, reportController.createReport);
 router.get('/reports/tags', auth, reportController.getAllTags);
 router.get('/reports', auth, reportController.getReports);
+router.get('/dashboard-stats', auth, reportController.getDashboardStats);
 router.get('/reports/:id', auth, reportController.getReportById);
 router.get('/reports/:id/pdf', auth, reportController.generatePDF);
 router.put('/reports/:id', auth, reportController.updateReport);
