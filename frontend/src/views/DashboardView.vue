@@ -84,23 +84,39 @@ const fetchDashboardStats = async () => {
       vulnerabilities: data.counts?.vulnerabilities || 0
     }
 
-    // Update severity chart
+    // Update severity chart - create new object for reactivity
     if (data.vulnerabilities?.severity) {
       const sev = data.vulnerabilities.severity
-      severityData.value.datasets[0].data = [
-        sev.Critical || 0,
-        sev.High || 0,
-        sev.Medium || 0,
-        sev.Low || 0
-      ]
+      severityData.value = {
+        labels: ['Critical', 'High', 'Medium', 'Low'],
+        datasets: [{
+          data: [
+            sev.Critical || 0,
+            sev.High || 0,
+            sev.Medium || 0,
+            sev.Low || 0
+          ],
+          backgroundColor: ['#ef4444', '#f97316', '#eab308', '#22c55e'],
+          borderWidth: 0,
+          hoverOffset: 4
+        }]
+      }
     }
 
-    // Update status chart (Open vs Fixed)
+    // Update status chart (Open vs Fixed) - create new object for reactivity
     if (data.reportStats) {
-      statusData.value.datasets[0].data = [
-        data.reportStats.Open || 0,
-        data.reportStats.Fixed || 0
-      ]
+      statusData.value = {
+        labels: ['Open', 'Fixed'],
+        datasets: [{
+          data: [
+            data.reportStats.Open || 0,
+            data.reportStats.Fixed || 0
+          ],
+          backgroundColor: ['#ef4444', '#22c55e'],
+          borderWidth: 0,
+          hoverOffset: 4
+        }]
+      }
     }
 
     // Recent risks
@@ -210,6 +226,14 @@ onMounted(() => {
         </div>
       </div>
 
+      <!-- Summary Dashboard Section -->
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="section-icon">📊</span> Summary Dashboard
+        </h2>
+        <p class="section-subtitle">Overview of projects, reports, and vulnerabilities.</p>
+      </div>
+
       <BentoGrid>
         <!-- Stats Cards Row -->
         <BentoCard title="Total Projects" :value="stats.projects" />
@@ -237,7 +261,7 @@ onMounted(() => {
         </BentoCard>
 
         <!-- Status Chart (Open vs Fixed) -->
-        <BentoCard title="Report Status (Open vs Fixed)" :span="2">
+        <BentoCard title="Report Status (Open vs Fixed)" :span="2" :row="2">
           <div class="chart-container">
             <Doughnut :data="statusData" :options="chartOptions" />
           </div>
@@ -315,7 +339,7 @@ onMounted(() => {
 }
 
 .chart-container {
-  height: 200px;
+  height: 250px;
   position: relative;
 }
 
@@ -323,6 +347,33 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+}
+
+/* Section Headers */
+.section-header {
+  margin-bottom: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.section-icon {
+  font-size: 1.25rem;
+}
+
+.section-subtitle {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin: 0;
 }
 
 /* KPI Section */
@@ -379,8 +430,14 @@ onMounted(() => {
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .kpi-card {

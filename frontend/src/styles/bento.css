@@ -5,7 +5,6 @@
     grid-template-columns: repeat(4, 1fr);
     grid-auto-rows: minmax(140px, auto);
     gap: var(--spacing-lg);
-    padding: var(--spacing-lg);
 }
 
 /* Column spans */

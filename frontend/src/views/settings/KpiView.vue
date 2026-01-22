@@ -8,23 +8,22 @@ import BentoCard from '../../components/layout/BentoCard.vue'
 const users = ref([])
 const selectedUserId = ref('')
 const selectedYear = ref(new Date().getFullYear())
-const kpiSettings = ref(null)
+const targets = ref([])
 const isLoading = ref(true)
 const isSaving = ref(false)
 
-const targets = ref({
-  totalProjects: 0,
-  totalReports: 0,
-  criticalVulns: 0,
-  highVulns: 0
-})
+const metricOptions = [
+  { value: 'ReportsClosed', label: 'Reports Closed (All Vulns Fixed)' },
+  { value: 'ReportsCompleted', label: 'Reports Completed (Submitted)' },
+  { value: 'VulnerabilitiesFound', label: 'Vulnerabilities Found' }
+]
 
 const loadUsers = async () => {
   try {
     users.value = await kpiApi.getUsers()
     if (users.value.length > 0) {
       selectedUserId.value = users.value[0]._id
-      loadKpiSettings()
+      loadSettings()
     }
   } catch (error) {
     console.error('Failed to load users:', error)
@@ -33,33 +32,59 @@ const loadUsers = async () => {
   }
 }
 
-const loadKpiSettings = async () => {
+const loadSettings = async () => {
   if (!selectedUserId.value) return
+  
   try {
     const result = await kpiApi.getSettings({
       userId: selectedUserId.value,
       year: selectedYear.value
     })
-    kpiSettings.value = result
-    if (result?.targets) {
-      targets.value = { ...result.targets }
+    
+    if (result?.targets && result.targets.length > 0) {
+      targets.value = result.targets.map(t => ({
+        metric: t.metric || 'ReportsClosed',
+        tag: t.tag || '',
+        targetValue: t.targetValue || 0
+      }))
     } else {
-      targets.value = { totalProjects: 0, totalReports: 0, criticalVulns: 0, highVulns: 0 }
+      targets.value = []
     }
   } catch (error) {
     console.error('Failed to load KPI settings:', error)
+    targets.value = []
   }
 }
 
+const addTarget = () => {
+  targets.value.push({
+    metric: 'ReportsClosed',
+    tag: '',
+    targetValue: 0
+  })
+}
+
+const removeTarget = (index) => {
+  targets.value.splice(index, 1)
+}
+
 const saveSettings = async () => {
+  if (!selectedUserId.value) {
+    alert('Please select a user')
+    return
+  }
+  
+  // Filter out empty targets
+  const validTargets = targets.value.filter(t => t.targetValue > 0)
+  
   isSaving.value = true
   try {
     await kpiApi.saveSettings({
       userId: selectedUserId.value,
       year: selectedYear.value,
-      targets: targets.value
+      targets: validTargets
     })
-    alert('KPI settings saved!')
+    alert('KPI Settings Saved Successfully!')
   } catch (error) {
     alert('Failed to save: ' + (error.response?.data?.message || error.message))
   } finally {
@@ -81,51 +106,114 @@ onMounted(() => {
       </header>
 
       <BentoGrid>
-        <BentoCard title="Select User & Year" :span="2">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">User</label>
-              <select v-model="selectedUserId" class="select" @change="loadKpiSettings">
-                <option v-for="user in users" :key="user._id" :value="user._id">
-                  {{ user.username }}
-                </option>
-              </select>
+        <BentoCard title="Configure KPI Targets" :span="4">
+          <form @submit.prevent="saveSettings" class="kpi-form">
+            <!-- Top Controls: User & Year -->
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Select User</label>
+                <select 
+                  v-model="selectedUserId" 
+                  class="select" 
+                  @change="loadSettings"
+                >
+                  <option value="" disabled>Select a User</option>
+                  <option v-for="user in users" :key="user._id" :value="user._id">
+                    {{ user.username }} {{ user.email ? `(${user.email})` : '' }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Year</label>
+                <input 
+                  v-model.number="selectedYear" 
+                  type="number" 
+                  class="input"
+                  @change="loadSettings"
+                />
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Year</label>
-              <select v-model="selectedYear" class="select" @change="loadKpiSettings">
-                <option v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</option>
-              </select>
-            </div>
-          </div>
-        </BentoCard>
 
-        <BentoCard title="KPI Targets" :span="2">
-          <div class="kpi-grid">
-            <div class="kpi-item">
-              <label class="form-label">Total Projects Goal</label>
-              <input v-model.number="targets.totalProjects" type="number" class="input" min="0" />
+            <!-- Targets Section -->
+            <div class="targets-section">
+              <div class="targets-header">
+                <h3>Target Goals</h3>
+                <button type="button" class="btn btn-primary btn-sm" @click="addTarget">
+                  + Add Target
+                </button>
+              </div>
+
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Tag / Condition</th>
+                      <th style="width: 120px;">Target Value</th>
+                      <th style="width: 60px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-if="targets.length === 0">
+                      <td colspan="4" class="text-center text-muted">
+                        No targets configured. Click "Add Target" to add one.
+                      </td>
+                    </tr>
+                    <tr v-for="(target, index) in targets" :key="index">
+                      <td>
+                        <select v-model="target.metric" class="select">
+                          <option 
+                            v-for="opt in metricOptions" 
+                            :key="opt.value" 
+                            :value="opt.value"
+                          >
+                            {{ opt.label }}
+                          </option>
+                        </select>
+                      </td>
+                      <td>
+                        <input 
+                          v-model="target.tag" 
+                          type="text" 
+                          class="input"
+                          placeholder="e.g. pentest2026"
+                        />
+                      </td>
+                      <td>
+                        <input 
+                          v-model.number="target.targetValue" 
+                          type="number" 
+                          class="input"
+                          placeholder="0"
+                          min="0"
+                        />
+                      </td>
+                      <td class="text-center">
+                        <button 
+                          type="button" 
+                          class="delete-btn"
+                          @click="removeTarget(index)"
+                        >
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div class="kpi-item">
-              <label class="form-label">Total Reports Goal</label>
-              <input v-model.number="targets.totalReports" type="number" class="input" min="0" />
+
+            <!-- Actions -->
+            <div class="form-actions">
+              <button 
+                type="submit" 
+                class="btn btn-primary"
+                :disabled="isSaving"
+              >
+                {{ isSaving ? 'Saving...' : 'Save Settings' }}
+              </button>
             </div>
-            <div class="kpi-item">
-              <label class="form-label">Critical Vulnerabilities Goal</label>
-              <input v-model.number="targets.criticalVulns" type="number" class="input" min="0" />
-            </div>
-            <div class="kpi-item">
-              <label class="form-label">High Vulnerabilities Goal</label>
-              <input v-model.number="targets.highVulns" type="number" class="input" min="0" />
-            </div>
-          </div>
-          <button 
-            class="btn btn-primary mt-lg"
-            @click="saveSettings"
-            :disabled="isSaving"
-          >
-            {{ isSaving ? 'Saving...' : 'Save KPI Settings' }}
-          </button>
+          </form>
         </BentoCard>
       </BentoGrid>
     </main>
@@ -133,12 +221,87 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.dashboard-layout { display: flex; min-height: 100vh; }
-.main-content { flex: 1; padding: var(--spacing-lg); overflow-y: auto; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg); }
-.page-header h1 { margin: 0; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); }
-.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); }
-.kpi-item { margin-bottom: var(--spacing-sm); }
-.mt-lg { margin-top: var(--spacing-lg); }
+.dashboard-layout { 
+  display: flex; 
+  min-height: 100vh; 
+}
+
+.main-content { 
+  flex: 1; 
+  padding: var(--spacing-lg); 
+  overflow-y: auto; 
+}
+
+.page-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: var(--spacing-lg); 
+}
+
+.page-header h1 { 
+  margin: 0; 
+}
+
+.kpi-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.form-row { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: var(--spacing-md); 
+}
+
+.targets-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.targets-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.targets-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: white;
+}
+
+.table td .select,
+.table td .input {
+  margin-bottom: 0;
+  font-size: 0.875rem;
+}
+
+.delete-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.delete-btn:hover {
+  opacity: 1;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--glass-border);
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
