@@ -58,7 +58,8 @@ const vulnForm = reactive({
   cvssVersion: '3.1',
   cvssVector: '',
   cvssScore: 0,
-  file: null
+  file: null,
+  files: []
 })
 
 // CVSS
@@ -127,7 +128,15 @@ async function loadReport() {
     }
     selectedFrameworkIds.value = (data.frameworks || []).map(f => typeof f === 'string' ? f : f._id)
     selectedTags.value = data.tags || []
-    vulnerabilities.value = data.vulnerabilities || []
+    vulnerabilities.value = (data.vulnerabilities || []).map(v => {
+      // Migration logic: Ensure 'files' array exists
+      const files = v.files && v.files.length > 0 ? v.files : (v.file ? [v.file] : [])
+      return {
+        ...v,
+        files: files,
+        file: files.length > 0 ? files[0] : (v.file || null)
+      }
+    })
   } catch (e) {
     console.error('Failed to load report:', e)
   } finally {
@@ -269,8 +278,15 @@ function openVulnModal(index = -1) {
       cvssVersion: v.cvssVersion || '3.1',
       cvssVector: v.cvssVector || '',
       cvssScore: v.cvssScore || 0,
-      file: v.file || null
+      file: v.file || null,
+      files: v.files && v.files.length > 0 ? [...v.files] : (v.file ? [v.file] : [])
     })
+
+    // Legacy support: if files empty but file exists, use file
+    if (vulnForm.files.length === 0 && vulnForm.file) {
+      vulnForm.files.push(vulnForm.file)
+    }
+
     cvssVersion.value = v.cvssVersion || '3.1'
     
     if (v.cvssVector) {
@@ -284,7 +300,8 @@ function openVulnModal(index = -1) {
   } else {
     Object.assign(vulnForm, {
       title: '', severity: 'medium', status: 'Open', owasp: '', affected: '',
-      detail: '', fix: '', cvssVersion: '3.1', cvssVector: '', cvssScore: 0, file: null
+      detail: '', fix: '', cvssVersion: '3.1', cvssVector: '', cvssScore: 0, 
+      file: null, files: []
     })
     cvssVersion.value = '3.1'
     cvssState.value = {}
@@ -306,7 +323,14 @@ function saveVulnerability() {
     return
   }
   
-  const vuln = { ...vulnForm, description: vulnForm.detail }
+  // Sync legacy file
+  const mainFile = vulnForm.files.length > 0 ? vulnForm.files[0] : null
+  
+  const vuln = { 
+    ...vulnForm, 
+    description: vulnForm.detail,
+    file: mainFile
+  }
   
   if (editingIndex.value >= 0) {
     vulnerabilities.value[editingIndex.value] = vuln
@@ -322,15 +346,38 @@ function removeVuln(index) {
   }
 }
 
+// Image Handlers
 function handleFileUpload(event) {
-  const file = event.target.files[0]
-  if (file) {
+  const fileList = event.target.files
+  if (!fileList.length) return
+
+  Array.from(fileList).forEach(file => {
     const reader = new FileReader()
     reader.onload = (e) => {
-      vulnForm.file = e.target.result
+      // Add new file to array
+      vulnForm.files.push(e.target.result)
+      // Update legacy file property if this is the first one
+      if (!vulnForm.file) vulnForm.file = e.target.result
     }
     reader.readAsDataURL(file)
-  }
+  })
+  
+  // Reset input so same files can be selected again if needed
+  event.target.value = ''
+}
+
+function removeFile(index) {
+  vulnForm.files.splice(index, 1)
+  // Update legacy file pointer
+  vulnForm.file = vulnForm.files.length > 0 ? vulnForm.files[0] : null
+}
+
+// Lightbox
+const currentLightboxImage = ref('')
+
+function openLightbox(imgSrc) {
+  currentLightboxImage.value = imgSrc
+  showLightbox.value = true
 }
 
 // Save Report
@@ -752,16 +799,19 @@ onMounted(() => {
 
           <!-- Evidence Image -->
           <div class="form-group full-width">
-            <label class="form-label">Evidence Image</label>
-            <input type="file" @change="handleFileUpload" class="file-input" accept="image/*" />
-            <div v-if="vulnForm.file" class="mt-2">
-              <span class="text-xs text-info">Preview (Click to enlarge)</span>
-              <img 
-                :src="vulnForm.file" 
-                alt="Evidence Preview" 
-                class="evidence-preview" 
-                @click="showLightbox = true"
-              />
+            <label class="form-label">Evidence Images (Multiple)</label>
+            <input type="file" @change="handleFileUpload" class="file-input" accept="image/*" multiple />
+            
+            <div v-if="vulnForm.files && vulnForm.files.length > 0" class="image-gallery mt-3">
+              <div v-for="(img, idx) in vulnForm.files" :key="idx" class="gallery-item">
+                <img 
+                  :src="img" 
+                  alt="Evidence Preview" 
+                  class="gallery-preview" 
+                  @click="openLightbox(img)"
+                />
+                <button type="button" class="remove-img-btn" @click="removeFile(idx)" title="Remove Image">×</button>
+              </div>
             </div>
           </div>
         </div>
@@ -777,7 +827,7 @@ onMounted(() => {
 
     <!-- Lightbox -->
     <div v-if="showLightbox" class="lightbox" @click="showLightbox = false">
-      <img :src="vulnForm.file" class="lightbox-img" />
+      <img :src="currentLightboxImage" class="lightbox-img" />
     </div>
 
     <!-- AI Progress Overlay -->
@@ -1319,7 +1369,55 @@ onMounted(() => {
 }
 
 .evidence-preview:hover {
-  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+.image-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 1rem;
+}
+
+.gallery-item {
+  position: relative;
+}
+
+.gallery-preview {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  cursor: zoom-in;
+  transition: transform 0.2s;
+}
+
+.gallery-preview:hover {
+  transform: scale(1.05);
+}
+
+.remove-img-btn {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 20px;
+  height: 20px;
+  background: red;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
+.remove-img-btn:hover {
+  background: darkred;
 }
 
 .lightbox {
