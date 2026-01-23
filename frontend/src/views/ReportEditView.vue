@@ -802,7 +802,7 @@ onMounted(() => {
             <label class="form-label">Evidence Images (Multiple)</label>
             <input type="file" @change="handleFileUpload" class="file-input" accept="image/*" multiple />
             
-            <div v-if="vulnForm.files && vulnForm.files.length > 0" class="image-gallery mt-3">
+            <div v-if="vulnForm.files && vulnForm.files.length > 0" class="image-gallery mt-5">
               <div v-for="(img, idx) in vulnForm.files" :key="idx" class="gallery-item">
                 <img 
                   :src="img" 
@@ -1331,6 +1331,7 @@ onMounted(() => {
 .file-input {
   display: block;
   width: 100%;
+  margin-bottom: 10px;
   font-size: 0.875rem;
   color: var(--text-muted);
   background: rgba(30, 41, 59, 0.5);
