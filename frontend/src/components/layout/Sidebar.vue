@@ -85,14 +85,17 @@ const logout = () => {
 <style scoped>
 .sidebar {
   width: 260px;
-  min-height: 100vh;
-  background: rgba(15, 23, 42, 0.6);
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(12px);
   border-right: 1px solid var(--glass-border);
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  overflow-y: auto;
 }
 
 .sidebar-header {
