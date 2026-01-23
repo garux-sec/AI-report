@@ -44,6 +44,7 @@ const showTagSuggestions = ref(false)
 // Vulnerabilities
 const vulnerabilities = ref([])
 const showVulnModal = ref(false)
+const showLightbox = ref(false)
 const editingIndex = ref(-1)
 
 const vulnForm = reactive({
@@ -754,8 +755,13 @@ onMounted(() => {
             <label class="form-label">Evidence Image</label>
             <input type="file" @change="handleFileUpload" class="file-input" accept="image/*" />
             <div v-if="vulnForm.file" class="mt-2">
-              <span class="text-xs text-info">Current file loaded</span>
-              <img :src="vulnForm.file" alt="Evidence Preview" class="evidence-preview" />
+              <span class="text-xs text-info">Preview (Click to enlarge)</span>
+              <img 
+                :src="vulnForm.file" 
+                alt="Evidence Preview" 
+                class="evidence-preview" 
+                @click="showLightbox = true"
+              />
             </div>
           </div>
         </div>
@@ -767,6 +773,11 @@ onMounted(() => {
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div v-if="showLightbox" class="lightbox" @click="showLightbox = false">
+      <img :src="vulnForm.file" class="lightbox-img" />
     </div>
 
     <!-- AI Progress Overlay -->
@@ -1296,11 +1307,38 @@ onMounted(() => {
 }
 
 .evidence-preview {
+  width: 100%;
   max-width: 100%;
-  max-height: 200px;
+  max-height: 400px;
+  object-fit: contain;
   margin-top: 0.5rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--glass-border);
+  cursor: zoom-in;
+  transition: transform 0.2s;
+}
+
+.evidence-preview:hover {
+  opacity: 0.9;
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+}
+
+.lightbox-img {
+  max-width: 95vw;
+  max-height: 95vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
 
 .text-info {
