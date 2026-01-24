@@ -14,7 +14,9 @@ const reportId = route.params.id
 const isLoading = ref(true)
 const isSaving = ref(false)
 const isGeneratingAI = ref(false)
+const isGettingAI = ref(false)
 const aiProgress = ref(0)
+const aiLanguage = ref('en') // 'en' or 'th'
 
 // Form Data
 const formData = reactive({
@@ -455,10 +457,23 @@ async function saveWithAI() {
     
     // Process vulnerabilities sequentially to avoid rate limits
     for (let i = 0; i < vulnerabilities.value.length; i++) {
-      const v = vulnerabilities.value[i]
-      
-      const prompt = `You are a Senior Penetration Tester. I will provide you with a vulnerability finding.
+        const v = vulnerabilities.value[i]
+
+        let sysInstruction = "You are a Senior Penetration Tester."
+        let langInstruction = ""
+        
+        if (aiLanguage.value === 'th') {
+            langInstruction = `
+IMPORTANT: Please output the 'detail' and 'fix' content strictly in ALL **Thai Language** (ภาษาไทย).
+Use professional technical Thai terminology where appropriate.`
+        } else {
+            langInstruction = "Please output the content in English."
+        }
+
+        const prompt = `${sysInstruction} I will provide you with a vulnerability finding.
 Your task is to write a professional 'Details / Impact' section and a 'Recommendation (Fix)' section.
+
+${langInstruction}
 
 Vulnerability Info:
 Title: ${v.title}
@@ -468,7 +483,7 @@ Current Details: ${v.detail || v.description || 'N/A'}
 
 Requirements:
 1. Details / Impact: Explain the vulnerability technically, how it can be exploited, and the business impact.
-2. Recommendation: Provide clear, actionable steps to fix the issue.
+2. Recommendation: Provide clear, actionable steps to fix the issue. Use a bulleted list format (e.g. - Step 1\n- Step 2) if there are multiple steps. Ensure each item is separated by a newline character.
 
 Output strictly in JSON format with keys "detail" and "fix". Example:
 {
@@ -763,6 +778,12 @@ onMounted(() => {
                 <span v-if="isSaving">Saving...</span>
                 <span v-else>💾 Manual Save</span>
               </button>
+              
+              <select v-model="aiLanguage" class="select select-sm select-lang" :disabled="isGeneratingAI">
+                <option value="en">🇬🇧 EN</option>
+                <option value="th">🇹🇭 TH</option>
+              </select>
+
               <button type="button" class="btn btn-primary btn-ai" @click="saveWithAI" :disabled="isGeneratingAI">
                 <span v-if="isGeneratingAI">🔄 Generating... {{ aiProgress }}%</span>
                 <span v-else>✨ AI Auto-Generate & Save</span>
