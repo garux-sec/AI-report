@@ -16,7 +16,7 @@ const isSaving = ref(false)
 const isGeneratingAI = ref(false)
 const isGettingAI = ref(false)
 const aiProgress = ref(0)
-const aiLanguage = ref('en') // 'en' or 'th'
+const aiLanguage = ref('th') // 'en' or 'th'
 
 // Form Data
 const formData = reactive({
