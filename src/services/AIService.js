@@ -10,7 +10,8 @@ class AIService {
     }
 
     getProvider(providerName) {
-        const provider = this.providers[providerName];
+        const name = (providerName || 'ollama').toLowerCase();
+        const provider = this.providers[name];
         if (!provider) {
             throw new Error(`AI Provider '${providerName}' not supported.`);
         }

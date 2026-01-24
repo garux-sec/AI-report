@@ -414,6 +414,19 @@ async function saveReport() {
   }
 }
 
+// AI Configuration
+const defaultAIConfig = ref(null)
+
+async function loadDefaultAI() {
+  try {
+    const result = await aiApi.getConfigs()
+    const configs = result.data || result
+    defaultAIConfig.value = configs.find(c => c.isDefault) || configs[0] || null
+  } catch (e) {
+    console.error('Failed to load AI config:', e)
+  }
+}
+
 // AI Generate
 async function saveWithAI() {
   if (vulnerabilities.value.length === 0) {
@@ -421,21 +434,93 @@ async function saveWithAI() {
     return
   }
   
-  if (!confirm('This will use AI to generate Details and Recommendations. Continue?')) {
+  if (!defaultAIConfig.value) {
+    await loadDefaultAI()
+    if (!defaultAIConfig.value) {
+      alert('No AI configuration found. Please configure AI settings first.')
+      return
+    }
+  }
+
+  if (!confirm(`This will use ${defaultAIConfig.value.name || 'AI'} to enhance Details and Recommendations. Continue?`)) {
     return
   }
   
   isGeneratingAI.value = true
-  aiProgress.value = 10
+  aiProgress.value = 0
   
   try {
-    aiProgress.value = 50
+    const total = vulnerabilities.value.length
+    let current = 0
+    
+    // Process vulnerabilities sequentially to avoid rate limits
+    for (let i = 0; i < vulnerabilities.value.length; i++) {
+      const v = vulnerabilities.value[i]
+      
+      const prompt = `You are a Senior Penetration Tester. I will provide you with a vulnerability finding.
+Your task is to write a professional 'Details / Impact' section and a 'Recommendation (Fix)' section.
+
+Vulnerability Info:
+Title: ${v.title}
+OWASP Category: ${v.owasp || 'N/A'}
+Affected Component: ${v.affected || 'N/A'}
+Current Details: ${v.detail || v.description || 'N/A'}
+
+Requirements:
+1. Details / Impact: Explain the vulnerability technically, how it can be exploited, and the business impact.
+2. Recommendation: Provide clear, actionable steps to fix the issue.
+
+Output strictly in JSON format with keys "detail" and "fix". Example:
+{
+  "detail": "...",
+  "fix": "..."
+}`
+
+      try {
+        const response = await aiApi.generateText({
+          provider: defaultAIConfig.value.provider,
+          model: defaultAIConfig.value.modelName,
+          prompt: prompt
+        })
+        
+        const resultText = response.data?.result || response.result || ''
+        
+        // Parse JSON
+        let enhanced = null
+        try {
+            // Try to find JSON in the response (in case of extra text)
+            const jsonMatch = resultText.match(/\{[\s\S]*\}/)
+            if (jsonMatch) {
+                enhanced = JSON.parse(jsonMatch[0])
+            } else {
+                enhanced = JSON.parse(resultText)
+            }
+        } catch (jsonErr) {
+            console.warn('AI response not valid JSON:', resultText)
+            // Fallback: use text as detail if not json
+            enhanced = { detail: resultText, fix: '' }
+        }
+
+        if (enhanced) {
+            if (enhanced.detail) v.detail = enhanced.detail
+            if (enhanced.fix) v.fix = enhanced.fix
+        }
+        
+      } catch (err) {
+        console.error(`Failed to enhance vulnerability ${i+1}:`, err)
+      }
+      
+      current++
+      aiProgress.value = Math.round((current / total) * 100)
+    }
+
     await saveReport()
-    aiProgress.value = 100
     
     setTimeout(() => {
       isGeneratingAI.value = false
+      alert('AI Enhancement Completed!')
     }, 500)
+    
   } catch (e) {
     console.error('AI Enhancement Failed:', e)
     alert('AI Enhancement Failed: ' + e.message)
