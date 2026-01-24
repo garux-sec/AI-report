@@ -6,6 +6,7 @@ import { frameworksApi } from '../api/frameworks'
 import { aiApi } from '../api/ai'
 import Sidebar from '../components/layout/Sidebar.vue'
 import { useToast } from '../composables/useToast'
+import ConfirmationModal from '../components/common/ConfirmationModal.vue'
 
 const toast = useToast()
 
@@ -20,6 +21,26 @@ const isGeneratingAI = ref(false)
 const isGettingAI = ref(false)
 const aiProgress = ref(0)
 const aiLanguage = ref('th') // 'en' or 'th'
+
+// Modal State
+const showConfirmation = ref(false)
+const confirmTitle = ref('')
+const confirmMessage = ref('')
+const confirmType = ref('info')
+let onConfirm = null
+
+function openConfirm(title, message, callback, type = 'info') {
+  confirmTitle.value = title
+  confirmMessage.value = message
+  onConfirm = callback
+  confirmType.value = type
+  showConfirmation.value = true
+}
+
+function handleConfirm() {
+  if (onConfirm) onConfirm()
+  showConfirmation.value = false
+}
 
 // Form Data
 const formData = reactive({
@@ -346,9 +367,15 @@ function saveVulnerability() {
 }
 
 function removeVuln(index) {
-  if (confirm('Delete this vulnerability?')) {
-    vulnerabilities.value.splice(index, 1)
-  }
+  openConfirm(
+    'Delete Vulnerability?',
+    'Are you sure you want to delete this vulnerability? This action cannot be undone.',
+    () => {
+      vulnerabilities.value.splice(index, 1)
+      toast.success('Vulnerability deleted')
+    },
+    'danger'
+  )
 }
 
 // Image Handlers
@@ -447,10 +474,14 @@ async function saveWithAI() {
     }
   }
 
-  if (!confirm(`This will use ${defaultAIConfig.value.name || 'AI'} to enhance Details and Recommendations. Continue?`)) {
-    return
-  }
-  
+  openConfirm(
+    'Start AI Generation?',
+    `This will use ${defaultAIConfig.value.name || 'AI'} to enhance Details and Recommendations. Continue?`,
+    () => runAIGeneration()
+  )
+}
+
+async function runAIGeneration() {
   isGeneratingAI.value = true
   aiProgress.value = 0
   
@@ -950,6 +981,16 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :isOpen="showConfirmation"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      @confirm="handleConfirm"
+      @cancel="showConfirmation = false"
+    />
   </div>
 </template>
 
