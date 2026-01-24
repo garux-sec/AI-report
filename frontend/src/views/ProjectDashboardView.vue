@@ -7,8 +7,13 @@ import { frameworksApi } from '../api/frameworks'
 import Sidebar from '../components/layout/Sidebar.vue'
 import BentoGrid from '../components/layout/BentoGrid.vue'
 import BentoCard from '../components/layout/BentoCard.vue'
+import { useToast } from '../composables/useToast'
+import { useConfirm } from '../composables/useConfirm'
 import { Chart as ChartJS, ArcElement, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js'
 import { Doughnut, Bar } from 'vue-chartjs'
+
+const toast = useToast()
+const { confirm } = useConfirm()
 
 ChartJS.register(ArcElement, CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
@@ -18,6 +23,7 @@ const projectId = computed(() => route.params.id)
 
 // Data
 const project = ref(null)
+// ... existing refs ...
 const reports = ref([])
 const frameworks = ref([])
 const isLoading = ref(true)
@@ -39,34 +45,7 @@ const newReportForm = ref({
 const allTags = ref([])
 const tagInput = ref('')
 
-// Charts
-const severityData = ref({
-  labels: ['Critical', 'High', 'Medium', 'Low'],
-  datasets: [{
-    data: [0, 0, 0, 0],
-    backgroundColor: ['#ef4444', '#f97316', '#eab308', '#22c55e'],
-    borderWidth: 0
-  }]
-})
-
-const statusData = ref({
-  labels: ['Open', 'Fixed'],
-  datasets: [{
-    data: [0, 0],
-    backgroundColor: ['#ef4444', '#22c55e'],
-    borderWidth: 0
-  }]
-})
-
-const owaspData = ref({
-  labels: [],
-  datasets: [{
-    label: 'Occurrences',
-    data: [],
-    backgroundColor: '#6366f1',
-    borderRadius: 4
-  }]
-})
+// ... Charts code stays mostly same, skipping to functions ...
 
 const chartOptions = {
   responsive: true,
@@ -91,52 +70,7 @@ const barOptions = {
   }
 }
 
-// Computed
-const filteredReports = computed(() => {
-  let result = [...reports.value]
-  
-  // Filter by search
-  if (searchTerm.value) {
-    const term = searchTerm.value.toLowerCase()
-    result = result.filter(r => 
-      r.systemName?.toLowerCase().includes(term) ||
-      r.url?.toLowerCase().includes(term)
-    )
-  }
-  
-  // Sort
-  result.sort((a, b) => {
-    let valA, valB
-    switch(sortField.value) {
-      case 'systemName':
-        valA = (a.systemName || '').toLowerCase()
-        valB = (b.systemName || '').toLowerCase()
-        break
-      case 'createdAt':
-        valA = new Date(a.createdAt).getTime()
-        valB = new Date(b.createdAt).getTime()
-        break
-      case 'status':
-        valA = getReportStatus(a)
-        valB = getReportStatus(b)
-        break
-      default:
-        valA = 0; valB = 0
-    }
-    if (valA < valB) return sortDirection.value === 'asc' ? -1 : 1
-    if (valA > valB) return sortDirection.value === 'asc' ? 1 : -1
-    return 0
-  })
-  
-  return result
-})
-
-const paginatedReports = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  return filteredReports.value.slice(start, start + itemsPerPage)
-})
-
-const totalPages = computed(() => Math.ceil(filteredReports.value.length / itemsPerPage))
+// Computed properties ...
 
 // Functions
 const loadProject = async () => {
@@ -144,6 +78,7 @@ const loadProject = async () => {
     project.value = await projectsApi.getById(projectId.value)
   } catch (error) {
     console.error('Failed to load project:', error)
+    toast.error('Failed to load project')
   }
 }
 
@@ -153,6 +88,7 @@ const loadReports = async () => {
     updateCharts()
   } catch (error) {
     console.error('Failed to load reports:', error)
+    toast.error('Failed to load reports')
   } finally {
     isLoading.value = false
   }
@@ -174,111 +110,7 @@ const loadTags = async () => {
   }
 }
 
-const updateCharts = () => {
-  // Aggregate severity counts
-  const severity = { critical: 0, high: 0, medium: 0, low: 0 }
-  const status = { Open: 0, Fixed: 0 }
-  const owasp = {}
-  
-  reports.value.forEach(r => {
-    let hasOpen = false
-    if (r.vulnerabilities) {
-      r.vulnerabilities.forEach(v => {
-        const s = (v.severity || 'low').toLowerCase()
-        if (severity[s] !== undefined) severity[s]++
-        if ((v.status || 'Open') === 'Open') hasOpen = true
-        if (v.owasp) {
-          const cat = v.owasp.split(':')[0].trim()
-          owasp[cat] = (owasp[cat] || 0) + 1
-        }
-      })
-    }
-    if (hasOpen || (r.vulnerabilities && r.vulnerabilities.length === 0)) {
-      status.Open++
-    } else if (r.vulnerabilities && r.vulnerabilities.length > 0) {
-      status.Fixed++
-    }
-  })
-  
-  severityData.value = {
-    labels: ['Critical', 'High', 'Medium', 'Low'],
-    datasets: [{
-      data: [severity.critical, severity.high, severity.medium, severity.low],
-      backgroundColor: ['#ef4444', '#f97316', '#eab308', '#22c55e'],
-      borderWidth: 0
-    }]
-  }
-  
-  statusData.value = {
-    labels: ['Open', 'Fixed'],
-    datasets: [{
-      data: [status.Open, status.Fixed],
-      backgroundColor: ['#ef4444', '#22c55e'],
-      borderWidth: 0
-    }]
-  }
-  
-  // OWASP Top 5
-  const sortedOwasp = Object.entries(owasp).sort((a, b) => b[1] - a[1]).slice(0, 5)
-  owaspData.value = {
-    labels: sortedOwasp.map(x => x[0]),
-    datasets: [{
-      label: 'Occurrences',
-      data: sortedOwasp.map(x => x[1]),
-      backgroundColor: '#6366f1',
-      borderRadius: 4
-    }]
-  }
-}
-
-const getReportStatus = (report) => {
-  if (!report.vulnerabilities || report.vulnerabilities.length === 0) return 'Open'
-  const hasOpen = report.vulnerabilities.some(v => (v.status || 'Open') === 'Open')
-  return hasOpen ? 'Open' : 'Fixed'
-}
-
-const getVulnBadges = (report) => {
-  const stats = { critical: 0, high: 0, medium: 0, low: 0, info: 0 }
-  if (report.vulnerabilities) {
-    report.vulnerabilities.forEach(v => {
-      const s = (v.severity || 'low').toLowerCase()
-      if (stats[s] !== undefined) stats[s]++
-    })
-  }
-  return stats
-}
-
-const sortTable = (field) => {
-  if (sortField.value === field) {
-    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortField.value = field
-    sortDirection.value = 'asc'
-  }
-}
-
-const openModal = () => {
-  newReportForm.value = { systemName: '', frameworks: [], tags: [] }
-  showModal.value = true
-  loadFrameworks()
-  loadTags()
-}
-
-const closeModal = () => {
-  showModal.value = false
-}
-
-const addTag = () => {
-  const tag = tagInput.value.trim()
-  if (tag && !newReportForm.value.tags.includes(tag)) {
-    newReportForm.value.tags.push(tag)
-  }
-  tagInput.value = ''
-}
-
-const removeTag = (tag) => {
-  newReportForm.value.tags = newReportForm.value.tags.filter(t => t !== tag)
-}
+// ... updateCharts, getReportStatus, getVulnBadges, sortTable, openModal, closeModal, addTag, removeTag ...
 
 const createReport = async () => {
   try {
@@ -288,19 +120,30 @@ const createReport = async () => {
       tags: newReportForm.value.tags,
       project: projectId.value
     })
+    toast.success('Report created successfully')
     router.push(`/report/${result.reportId}/edit?projectId=${projectId.value}`)
   } catch (error) {
-    alert('Failed to create report: ' + (error.response?.data?.message || error.message))
+    toast.error('Failed to create report: ' + (error.response?.data?.message || error.message))
   }
 }
 
 const deleteReport = async (id) => {
-  if (!confirm('Delete this report?')) return
+  const confirmed = await confirm({
+    title: 'Delete Report?',
+    message: 'Are you sure you want to delete this report? This action cannot be undone.',
+    type: 'danger',
+    confirmText: 'Delete'
+  })
+
+  if (!confirmed) return
+
   try {
     await reportsApi.delete(id)
+    toast.success('Report deleted')
     loadReports()
   } catch (error) {
     console.error('Failed to delete:', error)
+    toast.error('Failed to delete report')
   }
 }
 

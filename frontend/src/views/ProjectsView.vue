@@ -4,8 +4,14 @@ import { projectsApi } from '../api/projects'
 import Sidebar from '../components/layout/Sidebar.vue'
 import BentoGrid from '../components/layout/BentoGrid.vue'
 import BentoCard from '../components/layout/BentoCard.vue'
+import { useToast } from '../composables/useToast'
+import { useConfirm } from '../composables/useConfirm'
+
+const toast = useToast()
+const { confirm } = useConfirm()
 
 const projects = ref([])
+// ... existing refs ...
 const isLoading = ref(true)
 const showModal = ref(false)
 const editingProject = ref(null)
@@ -27,6 +33,7 @@ const loadProjects = async () => {
     projects.value = await projectsApi.getAll()
   } catch (error) {
     console.error('Failed to load projects:', error)
+    toast.error('Failed to load projects')
   } finally {
     isLoading.value = false
   }
@@ -81,35 +88,57 @@ const handleSubmit = async () => {
 
     if (editingProject.value) {
       await projectsApi.update(editingProject.value._id, data)
+      toast.success('Project updated')
     } else {
       await projectsApi.create(data)
+      toast.success('Project created')
     }
 
     closeModal()
     loadProjects()
   } catch (error) {
     console.error('Failed to save project:', error)
-    alert(error.response?.data?.message || 'Error saving project')
+    toast.error(error.response?.data?.message || 'Error saving project')
   }
 }
 
 const deleteProject = async (id) => {
-  if (!confirm('Delete this project?')) return
+  const confirmed = await confirm({
+    title: 'Delete Project?',
+    message: 'Are you sure you want to delete this project? All associated reports will also be deleted.',
+    type: 'danger',
+    confirmText: 'Delete'
+  })
+
+  if (!confirmed) return
+
   try {
     await projectsApi.delete(id)
+    toast.success('Project deleted')
     loadProjects()
   } catch (error) {
     console.error('Failed to delete project:', error)
+    toast.error('Failed to delete project')
   }
 }
 
 const cloneProject = async (id) => {
-  if (!confirm('Clone this project?')) return
+  const confirmed = await confirm({
+    title: 'Clone Project?',
+    message: 'Clone this project settings?',
+    type: 'info',
+    confirmText: 'Clone'
+  })
+
+  if (!confirmed) return
+
   try {
     await projectsApi.clone(id)
+    toast.success('Project cloned')
     loadProjects()
   } catch (error) {
     console.error('Failed to clone project:', error)
+    toast.error('Failed to clone project')
   }
 }
 

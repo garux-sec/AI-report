@@ -4,8 +4,12 @@ import { kpiApi } from '../../api/users'
 import Sidebar from '../../components/layout/Sidebar.vue'
 import BentoGrid from '../../components/layout/BentoGrid.vue'
 import BentoCard from '../../components/layout/BentoCard.vue'
+import { useToast } from '../../composables/useToast'
+
+const toast = useToast()
 
 const users = ref([])
+// ... existing refs ...
 const selectedUserId = ref('')
 const selectedYear = ref(new Date().getFullYear())
 const targets = ref([])
@@ -27,6 +31,7 @@ const loadUsers = async () => {
     }
   } catch (error) {
     console.error('Failed to load users:', error)
+    toast.error('Failed to load users')
   } finally {
     isLoading.value = false
   }
@@ -52,6 +57,7 @@ const loadSettings = async () => {
     }
   } catch (error) {
     console.error('Failed to load KPI settings:', error)
+    toast.error('Failed to load KPI settings')
     targets.value = []
   }
 }
@@ -70,7 +76,7 @@ const removeTarget = (index) => {
 
 const saveSettings = async () => {
   if (!selectedUserId.value) {
-    alert('Please select a user')
+    toast.warning('Please select a user')
     return
   }
   
@@ -84,9 +90,9 @@ const saveSettings = async () => {
       year: selectedYear.value,
       targets: validTargets
     })
-    alert('KPI Settings Saved Successfully!')
+    toast.success('KPI Settings Saved Successfully!')
   } catch (error) {
-    alert('Failed to save: ' + (error.response?.data?.message || error.message))
+    toast.error('Failed to save: ' + (error.response?.data?.message || error.message))
   } finally {
     isSaving.value = false
   }

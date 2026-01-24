@@ -4,8 +4,14 @@ import { usersApi } from '../../api/users'
 import Sidebar from '../../components/layout/Sidebar.vue'
 import BentoGrid from '../../components/layout/BentoGrid.vue'
 import BentoCard from '../../components/layout/BentoCard.vue'
+import { useToast } from '../../composables/useToast'
+import { useConfirm } from '../../composables/useConfirm'
+
+const toast = useToast()
+const { confirm } = useConfirm()
 
 const users = ref([])
+// ... existing refs ...
 const isLoading = ref(true)
 const showModal = ref(false)
 const editingUser = ref(null)
@@ -21,6 +27,7 @@ const loadUsers = async () => {
     users.value = await usersApi.getAll()
   } catch (error) {
     console.error('Failed to load users:', error)
+    toast.error('Failed to load users')
   } finally {
     isLoading.value = false
   }
@@ -53,23 +60,35 @@ const handleSubmit = async () => {
     
     if (editingUser.value) {
       await usersApi.update(editingUser.value._id, data)
+      toast.success('User updated')
     } else {
       await usersApi.create(data)
+      toast.success('User created')
     }
     closeModal()
     loadUsers()
   } catch (error) {
-    alert(error.response?.data?.message || 'Error saving user')
+    toast.error(error.response?.data?.message || 'Error saving user')
   }
 }
 
 const deleteUser = async (id) => {
-  if (!confirm('Delete this user?')) return
+  const confirmed = await confirm({
+    title: 'Delete User?',
+    message: 'Are you sure you want to delete this user?',
+    type: 'danger',
+    confirmText: 'Delete'
+  })
+
+  if (!confirmed) return
+
   try {
     await usersApi.delete(id)
+    toast.success('User deleted')
     loadUsers()
   } catch (error) {
     console.error('Failed to delete user:', error)
+    toast.error('Failed to delete user')
   }
 }
 

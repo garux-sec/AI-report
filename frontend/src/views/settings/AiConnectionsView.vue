@@ -4,8 +4,14 @@ import { aiApi } from '../../api/ai'
 import Sidebar from '../../components/layout/Sidebar.vue'
 import BentoGrid from '../../components/layout/BentoGrid.vue'
 import BentoCard from '../../components/layout/BentoCard.vue'
+import { useToast } from '../../composables/useToast'
+import { useConfirm } from '../../composables/useConfirm'
+
+const toast = useToast()
+const { confirm } = useConfirm()
 
 const configs = ref([])
+// ... existing refs ...
 const isLoading = ref(true)
 const showModal = ref(false)
 const editingConfig = ref(null)
@@ -32,6 +38,7 @@ const loadConfigs = async () => {
     configs.value = await aiApi.getConfigs()
   } catch (error) {
     console.error('Failed to load configs:', error)
+    toast.error('Failed to load configs')
   } finally {
     isLoading.value = false
   }
@@ -69,8 +76,9 @@ const fetchModels = async () => {
       apiKey: formData.value.apiKey
     })
     availableModels.value = result.models || []
+    toast.success('Models fetched successfully')
   } catch (error) {
-    alert('Failed to fetch models: ' + (error.response?.data?.message || error.message))
+    toast.error('Failed to fetch models: ' + (error.response?.data?.message || error.message))
   } finally {
     isFetchingModels.value = false
   }
@@ -80,23 +88,35 @@ const handleSubmit = async () => {
   try {
     if (editingConfig.value) {
       await aiApi.updateConfig(editingConfig.value._id, formData.value)
+      toast.success('Connection updated')
     } else {
       await aiApi.createConfig(formData.value)
+      toast.success('Connection created')
     }
     closeModal()
     loadConfigs()
   } catch (error) {
-    alert(error.response?.data?.message || 'Error saving config')
+    toast.error(error.response?.data?.message || 'Error saving config')
   }
 }
 
 const deleteConfig = async (id) => {
-  if (!confirm('Delete this AI connection?')) return
+  const confirmed = await confirm({
+    title: 'Delete Connection?',
+    message: 'Are you sure you want to delete this AI connection?',
+    type: 'danger',
+    confirmText: 'Delete'
+  })
+
+  if (!confirmed) return
+
   try {
     await aiApi.deleteConfig(id)
+    toast.success('Connection deleted')
     loadConfigs()
   } catch (error) {
     console.error('Failed to delete config:', error)
+    toast.error('Failed to delete config')
   }
 }
 

@@ -4,8 +4,14 @@ import { frameworksApi } from '../../api/frameworks'
 import Sidebar from '../../components/layout/Sidebar.vue'
 import BentoGrid from '../../components/layout/BentoGrid.vue'
 import BentoCard from '../../components/layout/BentoCard.vue'
+import { useToast } from '../../composables/useToast'
+import { useConfirm } from '../../composables/useConfirm'
+
+const toast = useToast()
+const { confirm } = useConfirm()
 
 const frameworks = ref([])
+// ... existing refs ...
 const isLoading = ref(true)
 const showModal = ref(false)
 const editingFramework = ref(null)
@@ -21,6 +27,7 @@ const loadFrameworks = async () => {
     frameworks.value = await frameworksApi.getAll()
   } catch (error) {
     console.error('Failed to load frameworks:', error)
+    toast.error('Failed to load frameworks')
   } finally {
     isLoading.value = false
   }
@@ -46,23 +53,35 @@ const handleSubmit = async () => {
   try {
     if (editingFramework.value) {
       await frameworksApi.update(editingFramework.value._id, formData.value)
+      toast.success('Framework updated')
     } else {
       await frameworksApi.create(formData.value)
+      toast.success('Framework created')
     }
     closeModal()
     loadFrameworks()
   } catch (error) {
-    alert(error.response?.data?.message || 'Error saving framework')
+    toast.error(error.response?.data?.message || 'Error saving framework')
   }
 }
 
 const deleteFramework = async (id) => {
-  if (!confirm('Delete this framework?')) return
+  const confirmed = await confirm({
+    title: 'Delete Framework?',
+    message: 'Are you sure you want to delete this framework?',
+    type: 'danger',
+    confirmText: 'Delete'
+  })
+
+  if (!confirmed) return
+
   try {
     await frameworksApi.delete(id)
+    toast.success('Framework deleted')
     loadFrameworks()
   } catch (error) {
     console.error('Failed to delete framework:', error)
+    toast.error('Failed to delete framework')
   }
 }
 

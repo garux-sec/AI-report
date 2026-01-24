@@ -6,9 +6,10 @@ import { frameworksApi } from '../api/frameworks'
 import { aiApi } from '../api/ai'
 import Sidebar from '../components/layout/Sidebar.vue'
 import { useToast } from '../composables/useToast'
-import ConfirmationModal from '../components/common/ConfirmationModal.vue'
+import { useConfirm } from '../composables/useConfirm'
 
 const toast = useToast()
+const { confirm } = useConfirm()
 
 const route = useRoute()
 const router = useRouter()
@@ -21,26 +22,6 @@ const isGeneratingAI = ref(false)
 const isGettingAI = ref(false)
 const aiProgress = ref(0)
 const aiLanguage = ref('th') // 'en' or 'th'
-
-// Modal State
-const showConfirmation = ref(false)
-const confirmTitle = ref('')
-const confirmMessage = ref('')
-const confirmType = ref('info')
-let onConfirm = null
-
-function openConfirm(title, message, callback, type = 'info') {
-  confirmTitle.value = title
-  confirmMessage.value = message
-  onConfirm = callback
-  confirmType.value = type
-  showConfirmation.value = true
-}
-
-function handleConfirm() {
-  if (onConfirm) onConfirm()
-  showConfirmation.value = false
-}
 
 // Form Data
 const formData = reactive({
@@ -366,16 +347,18 @@ function saveVulnerability() {
   closeVulnModal()
 }
 
-function removeVuln(index) {
-  openConfirm(
-    'Delete Vulnerability?',
-    'Are you sure you want to delete this vulnerability? This action cannot be undone.',
-    () => {
-      vulnerabilities.value.splice(index, 1)
-      toast.success('Vulnerability deleted')
-    },
-    'danger'
-  )
+async function removeVuln(index) {
+  const confirmed = await confirm({
+    title: 'Delete Vulnerability?',
+    message: 'Are you sure you want to delete this vulnerability? This action cannot be undone.',
+    type: 'danger',
+    confirmText: 'Delete'
+  })
+
+  if (confirmed) {
+    vulnerabilities.value.splice(index, 1)
+    toast.success('Vulnerability deleted')
+  }
 }
 
 // Image Handlers
@@ -474,11 +457,14 @@ async function saveWithAI() {
     }
   }
 
-  openConfirm(
-    'Start AI Generation?',
-    `This will use ${defaultAIConfig.value.name || 'AI'} to enhance Details and Recommendations. Continue?`,
-    () => runAIGeneration()
-  )
+  const confirmed = await confirm({
+    title: 'Start AI Generation?',
+    message: `This will use ${defaultAIConfig.value.name || 'AI'} to enhance Details and Recommendations. Continue?`
+  })
+
+  if (!confirmed) return
+
+  runAIGeneration()
 }
 
 async function runAIGeneration() {
@@ -982,15 +968,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Confirmation Modal -->
-    <ConfirmationModal
-      :isOpen="showConfirmation"
-      :title="confirmTitle"
-      :message="confirmMessage"
-      :type="confirmType"
-      @confirm="handleConfirm"
-      @cancel="showConfirmation = false"
-    />
   </div>
 </template>
 
