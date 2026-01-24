@@ -483,7 +483,7 @@ Current Details: ${v.detail || v.description || 'N/A'}
 
 Requirements:
 1. Details / Impact: Explain the vulnerability technically, how it can be exploited, and the business impact.
-2. Recommendation: Provide clear, actionable steps to fix the issue. Use a bulleted list format (e.g. - Step 1\n- Step 2) if there are multiple steps. Ensure each item is separated by a newline character.
+2. Recommendation: Provide clear, actionable steps to fix the issue. **Include specific technical details, code snippets, or configuration examples where applicable.** Use a bulleted list format (e.g. - Step 1\n- Step 2) if there are multiple steps. Ensure each item is separated by a newline character.
 
 Output strictly in JSON format with keys "detail" and "fix". Example:
 {
