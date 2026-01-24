@@ -5,6 +5,9 @@ import { reportsApi } from '../api/reports'
 import { frameworksApi } from '../api/frameworks'
 import { aiApi } from '../api/ai'
 import Sidebar from '../components/layout/Sidebar.vue'
+import { useToast } from '../composables/useToast'
+
+const toast = useToast()
 
 const route = useRoute()
 const router = useRouter()
@@ -321,7 +324,7 @@ function closeVulnModal() {
 
 function saveVulnerability() {
   if (!vulnForm.title) {
-    alert('Title is required')
+    toast.warning('Title is required')
     return
   }
   
@@ -407,10 +410,10 @@ async function saveReport() {
         router.push(`/reports/edit/${result.reportId}`)
       }
     }
-    alert('Report Saved Successfully!')
+    toast.success('Report Saved Successfully!')
   } catch (e) {
     console.error('Failed to save report:', e)
-    alert('Error saving report: ' + e.message)
+    toast.error('Error saving report: ' + e.message)
   } finally {
     isSaving.value = false
   }
@@ -432,14 +435,14 @@ async function loadDefaultAI() {
 // AI Generate
 async function saveWithAI() {
   if (vulnerabilities.value.length === 0) {
-    alert('No vulnerabilities to enhance.')
+    toast.warning('No vulnerabilities to enhance.')
     return
   }
   
   if (!defaultAIConfig.value) {
     await loadDefaultAI()
     if (!defaultAIConfig.value) {
-      alert('No AI configuration found. Please configure AI settings first.')
+      toast.error('No AI configuration found. Please configure AI settings first.')
       return
     }
   }
@@ -533,12 +536,12 @@ Output strictly in JSON format with keys "detail" and "fix". Example:
     
     setTimeout(() => {
       isGeneratingAI.value = false
-      alert('AI Enhancement Completed!')
+      toast.success('AI Enhancement Completed!')
     }, 500)
     
   } catch (e) {
     console.error('AI Enhancement Failed:', e)
-    alert('AI Enhancement Failed: ' + e.message)
+    toast.error('AI Enhancement Failed: ' + e.message)
     isGeneratingAI.value = false
   }
 }
