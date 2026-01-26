@@ -144,6 +144,7 @@ async function loadReport() {
         file: files.length > 0 ? files[0] : (v.file || null)
       }
     })
+    sortVulnerabilities()
   } catch (e) {
     console.error('Failed to load report:', e)
   } finally {
@@ -324,6 +325,11 @@ function closeVulnModal() {
   editingIndex.value = -1
 }
 
+
+function sortVulnerabilities() {
+  vulnerabilities.value.sort((a, b) => (b.cvssScore || 0) - (a.cvssScore || 0))
+}
+
 function saveVulnerability() {
   if (!vulnForm.title) {
     toast.warning('Title is required')
@@ -344,6 +350,8 @@ function saveVulnerability() {
   } else {
     vulnerabilities.value.push(vuln)
   }
+  
+  sortVulnerabilities()
   closeVulnModal()
 }
 

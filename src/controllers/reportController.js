@@ -35,6 +35,12 @@ exports.getReportById = async (req, res) => {
     try {
         const report = await Report.findById(req.params.id);
         if (!report) return res.status(404).json({ message: 'Report not found' });
+
+        // Sort vulnerabilities by CVSS Score (Descending)
+        if (report.vulnerabilities && report.vulnerabilities.length > 0) {
+            report.vulnerabilities.sort((a, b) => (b.cvssScore || 0) - (a.cvssScore || 0));
+        }
+
         res.json(report);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching report' });
@@ -69,6 +75,11 @@ exports.generatePDF = async (req, res) => {
     try {
         const report = await Report.findById(req.params.id);
         if (!report) return res.status(404).json({ message: 'Report not found' });
+
+        // Sort vulnerabilities by CVSS Score (Descending)
+        if (report.vulnerabilities && report.vulnerabilities.length > 0) {
+            report.vulnerabilities.sort((a, b) => (b.cvssScore || 0) - (a.cvssScore || 0));
+        }
 
         PDFService.generateReport(report, res);
     } catch (error) {
