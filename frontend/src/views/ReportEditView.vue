@@ -19,7 +19,7 @@ const reportId = route.params.id
 const isLoading = ref(true)
 const isSaving = ref(false)
 const isGeneratingAI = ref(false)
-const isGettingAI = ref(false)
+const isGeneratingSingleAI = ref(false)
 const aiProgress = ref(0)
 const aiLanguage = ref('th') // 'en' or 'th'
 
@@ -498,25 +498,34 @@ Use professional technical Thai terminology where appropriate.`
             langInstruction = "Please output the content in English."
         }
 
+        const frameworkInfo = allFrameworks.value
+            .filter(f => selectedFrameworkIds.value.includes(f._id))
+            .map(f => `${f.name} (${f.year})`)
+            .join(', ') || 'N/A'
+
         const prompt = `${sysInstruction} I will provide you with a vulnerability finding.
-Your task is to write a professional 'Details / Impact' section and a 'Recommendation (Fix)' section.
+Your task is to write a professional 'Details / Impact' section, a 'Recommendation (Fix)' section, and identify the most relevant 'OWASP Category' based on the security frameworks used in this report.
+
+Security Frameworks for this Report: ${frameworkInfo}
 
 ${langInstruction}
 
 Vulnerability Info:
 Title: ${v.title}
-OWASP Category: ${v.owasp || 'N/A'}
+OWASP Category: ${v.owasp || 'N/A'} (Please update this if it's N/A or inaccurate)
 Affected Component: ${v.affected || 'N/A'}
 Current Details: ${v.detail || v.description || 'N/A'}
 
 Requirements:
 1. Details / Impact: Explain the vulnerability technically, how it can be exploited, and the business impact.
 2. Recommendation: Provide clear, actionable steps to fix the issue. **Include specific technical details, code snippets, or configuration examples where applicable.** Use a bulleted list format (e.g. - Step 1\n- Step 2) if there are multiple steps. Ensure each item is separated by a newline character.
+3. OWASP Category: Identify the most relevant category (e.g., A01:2021-Broken Access Control). If the selected framework is an OWASP standard, please strictly use its categories.
 
-Output strictly in JSON format with keys "detail" and "fix". Example:
+Output strictly in JSON format with keys "detail", "fix", and "owasp". Example:
 {
   "detail": "...",
-  "fix": "..."
+  "fix": "...",
+  "owasp": "..."
 }`
 
       try {
@@ -547,6 +556,7 @@ Output strictly in JSON format with keys "detail" and "fix". Example:
         if (enhanced) {
             if (enhanced.detail) v.detail = enhanced.detail
             if (enhanced.fix) v.fix = enhanced.fix
+            if (enhanced.owasp) v.owasp = enhanced.owasp
         }
         
       } catch (err) {
@@ -568,6 +578,101 @@ Output strictly in JSON format with keys "detail" and "fix". Example:
     console.error('AI Enhancement Failed:', e)
     toast.error('AI Enhancement Failed: ' + e.message)
     isGeneratingAI.value = false
+  }
+}
+
+async function generateSingleAI() {
+  if (!vulnForm.title) {
+    toast.warning('Vulnerability title is required for AI generation.')
+    return
+  }
+
+  if (!defaultAIConfig.value) {
+    await loadDefaultAI()
+    if (!defaultAIConfig.value) {
+      toast.error('No AI configuration found. Please configure AI settings first.')
+      return
+    }
+  }
+
+  isGeneratingSingleAI.value = true
+  
+  try {
+    const frameworkInfo = allFrameworks.value
+        .filter(f => selectedFrameworkIds.value.includes(f._id))
+        .map(f => `${f.name} (${f.year})`)
+        .join(', ') || 'N/A'
+
+    let sysInstruction = "You are a Senior Penetration Tester."
+    let langInstruction = ""
+    
+    if (aiLanguage.value === 'th') {
+        langInstruction = `
+IMPORTANT: Please output the 'detail' and 'fix' content strictly in ALL **Thai Language** (ภาษาไทย).
+Use professional technical Thai terminology where appropriate.`
+    } else {
+        langInstruction = "Please output the content in English."
+    }
+
+    const prompt = `${sysInstruction} I will provide you with a vulnerability finding.
+Your task is to write a professional 'Details / Impact' section, a 'Recommendation (Fix)' section, and identify the most relevant 'OWASP Category' based on the security frameworks used in this report.
+
+Security Frameworks for this Report: ${frameworkInfo}
+
+${langInstruction}
+
+Vulnerability Info:
+Title: ${vulnForm.title}
+OWASP Category: ${vulnForm.owasp || 'N/A'} (Please update this if it's N/A or inaccurate)
+Affected Component: ${vulnForm.affected || 'N/A'}
+Current Details: ${vulnForm.detail || 'N/A'}
+
+Requirements:
+1. Details / Impact: Explain the vulnerability technically, how it can be exploited, and the business impact.
+2. Recommendation: Provide clear, actionable steps to fix the issue. **Include specific technical details, code snippets, or configuration examples where applicable.** Use a bulleted list format (e.g. - Step 1\n- Step 2) if there are multiple steps. Ensure each item is separated by a newline character.
+3. OWASP Category: Identify the most relevant category (e.g., A01:2021-Broken Access Control). If the selected framework is an OWASP standard, please strictly use its categories.
+
+Output strictly in JSON format with keys "detail", "fix", and "owasp". Example:
+{
+  "detail": "...",
+  "fix": "...",
+  "owasp": "..."
+}`
+
+    const response = await aiApi.generateText({
+      provider: defaultAIConfig.value.provider,
+      model: defaultAIConfig.value.modelName,
+      prompt: prompt
+    })
+    
+    const resultText = response.data?.result || response.result || ''
+    
+    // Parse JSON
+    let enhanced = null
+    try {
+        const jsonMatch = resultText.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+            enhanced = JSON.parse(jsonMatch[0])
+        } else {
+            enhanced = JSON.parse(resultText)
+        }
+    } catch (jsonErr) {
+        console.warn('AI response not valid JSON:', resultText)
+        enhanced = { detail: resultText, fix: '' }
+    }
+
+    if (enhanced) {
+        if (enhanced.detail) vulnForm.detail = enhanced.detail
+        if (enhanced.fix) vulnForm.fix = enhanced.fix
+        if (enhanced.owasp) vulnForm.owasp = enhanced.owasp
+        toast.success('Vulnerability enhanced with AI!')
+    }
+    
+  } catch (e) {
+    console.error('AI Single Generation Failed:', e)
+    toast.error('AI Generation Failed: ' + e.message)
+  } finally {
+    isGeneratingSingleAI.value = false
   }
 }
 
@@ -952,9 +1057,20 @@ onMounted(() => {
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" @click="closeVulnModal">Cancel</button>
-          <button type="button" class="btn btn-primary" @click="saveVulnerability">
-            {{ editingIndex >= 0 ? 'Update Vulnerability' : 'Add Vulnerability' }}
-          </button>
+          <div class="footer-actions">
+            <button 
+              type="button" 
+              class="btn btn-ai-single" 
+              @click="generateSingleAI"
+              :disabled="isGeneratingSingleAI || isGeneratingAI"
+            >
+              <span v-if="isGeneratingSingleAI">🔄 Generating...</span>
+              <span v-else>✨ AI Auto-Generate</span>
+            </button>
+            <button type="button" class="btn btn-primary" @click="saveVulnerability">
+              {{ editingIndex >= 0 ? 'Update Vulnerability' : 'Add Vulnerability' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1594,6 +1710,34 @@ onMounted(() => {
 .modal-header h3 {
   margin: 0;
   font-size: 1.125rem;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-ai-single {
+  background: linear-gradient(135deg, #818cf8, #6366f1);
+  color: white;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.btn-ai-single:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+}
+
+.btn-ai-single:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .modal-close {
