@@ -203,15 +203,18 @@ onMounted(fetchConfigs)
     <Sidebar />
     <main class="main-content">
       <header class="page-header">
-        <h1>SSH Configuration</h1>
-        <button class="btn btn-primary" @click="openAddModal">+ Add Configuration</button>
+        <div>
+          <h1>Kali Command Runner</h1>
+          <p class="page-subtitle">Connect to Kali machines for executing penetration testing commands</p>
+        </div>
+        <button class="btn btn-primary" @click="openAddModal">+ Add Kali Machine</button>
       </header>
 
       <BentoGrid>
-        <BentoCard title="SSH Machines" :span="4">
+        <BentoCard title="Connected Kali Machines" :span="4">
           <div v-if="isLoading" class="text-center text-muted">Loading...</div>
           <div v-else-if="configs.length === 0" class="empty-state">
-            <p>No SSH configurations configured.</p>
+            <p>No Kali machines configured. Add one to start running commands remotely.</p>
           </div>
           <div v-else class="config-grid">
             <div 
@@ -286,13 +289,13 @@ onMounted(fetchConfigs)
     <div v-if="showModal" class="modal-backdrop" @click.self="showModal = false">
       <div class="modal" style="max-width: 600px;">
         <div class="modal-header">
-          <h2 class="modal-title">{{ editingId ? 'Edit Configuration' : 'Add Configuration' }}</h2>
+          <h2 class="modal-title">{{ editingId ? 'Edit Kali Machine' : 'Add Kali Machine' }}</h2>
           <button class="modal-close" @click="showModal = false">&times;</button>
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label class="form-label">Name (Label)</label>
-            <input v-model="form.name" type="text" class="input" placeholder="e.g. My Kali Machine" />
+            <label class="form-label">Machine Name</label>
+            <input v-model="form.name" type="text" class="input" placeholder="e.g. Kali-Primary, Pentest-Box" />
           </div>
           <div class="form-grid">
             <div class="form-group">
@@ -351,6 +354,12 @@ onMounted(fetchConfigs)
 .main-content { flex: 1; padding: var(--spacing-lg); overflow-y: auto; }
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg); }
 .page-header h1 { margin: 0; }
+.page-subtitle { 
+  margin: 0.5rem 0 0; 
+  font-size: 0.9rem; 
+  color: var(--text-muted); 
+  font-weight: 400;
+}
 
 .config-grid {
   display: grid;
