@@ -7,6 +7,8 @@ import Sidebar from '../components/layout/Sidebar.vue'
 import BentoGrid from '../components/layout/BentoGrid.vue'
 import BentoCard from '../components/layout/BentoCard.vue'
 import { useToast } from '../composables/useToast'
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css'
 
 const toast = useToast()
 const route = useRoute()
@@ -18,7 +20,7 @@ const targetId = computed(() => route.params.targetId)
 // Data
 const target = ref(null)
 const project = ref(null)
-const notes = ref('')
+const notes = ref('') // Now HTML content
 const isLoading = ref(true)
 const isSaving = ref(false)
 const isExecuting = ref(false)
@@ -32,6 +34,7 @@ const command = ref('')
 // Image upload
 const imageFileInput = ref(null)
 const imageDescription = ref('')
+const quill = ref(null) // Reference to Quill instance
 
 // Preset commands
 const presetCommands = [
@@ -77,6 +80,7 @@ const loadKaliRunners = async () => {
 const saveNotes = async () => {
   try {
     isSaving.value = true
+    // Save the HTML content directly
     await projectsApi.updateTargetNotes(projectId.value, targetId.value, notes.value)
   } catch (error) {
     console.error('Failed to save notes:', error)
@@ -187,9 +191,26 @@ const handleImageUpload = async (event) => {
     formData.append('description', imageDescription.value)
 
     await projectsApi.uploadTargetImage(projectId.value, targetId.value, formData)
-    await loadTarget()
     
-    toast.success('Image uploaded')
+    // Refresh target to get new image list
+    const response = await projectsApi.getTarget(projectId.value, targetId.value)
+    target.value = response.target
+    
+    // Get the uploaded image (last one in array)
+    const uploadedImage = target.value.images[target.value.images.length - 1]
+    
+    if (uploadedImage && quill.value) {
+      // Insert image into Quill editor
+      const editor = quill.value.getQuill()
+      const range = editor.getSelection(true) || { index: editor.getLength() }
+      editor.insertEmbed(range.index, 'image', uploadedImage.path)
+      editor.setSelection(range.index + 1)
+      
+      toast.success('Image uploaded and inserted to notes')
+    } else {
+      toast.success('Image uploaded')
+    }
+
     imageDescription.value = ''
     event.target.value = ''
   } catch (error) {
@@ -211,6 +232,10 @@ const deleteImage = async (imageId) => {
     console.error('Delete image failed:', error)
     toast.error('Failed to delete image')
   }
+}
+
+const openImageModal = (img) => {
+  window.open(img.path, '_blank')
 }
 
 onMounted(() => {
@@ -319,24 +344,9 @@ onMounted(() => {
           </BentoCard>
         </BentoGrid>
 
-        <!-- Notes Section -->
+        <!-- Pentest Notes Editor -->
         <div class="section-header">
           <h2 class="section-title">📝 Pentest Notes</h2>
-        </div>
-        <BentoGrid>
-          <BentoCard :span="4">
-            <textarea 
-              v-model="notes"
-              class="notes-textarea"
-              placeholder="Write your pentest notes here... (auto-saved)"
-              rows="10"
-            ></textarea>
-          </BentoCard>
-        </BentoGrid>
-
-        <!-- Screenshots Section -->
-        <div class="section-header">
-          <h2 class="section-title">📸 Screenshots</h2>
           <div class="section-actions">
             <input 
               ref="imageFileInput" 
@@ -345,29 +355,46 @@ onMounted(() => {
               @change="handleImageUpload" 
               style="display: none" 
             />
-            <button class="btn btn-sm btn-primary" @click="triggerImageUpload" :disabled="isUploading">
-              {{ isUploading ? '⏳ Uploading...' : '📤 Upload Image' }}
+            <button class="btn btn-sm btn-secondary" @click="triggerImageUpload" :disabled="isUploading">
+              {{ isUploading ? '⏳ Uploading...' : '📷 Add Image' }}
             </button>
+            <span v-if="isSaving" class="saving-indicator">💾 Saving...</span>
           </div>
         </div>
         <BentoGrid>
           <BentoCard :span="4">
-            <div v-if="!target.images?.length" class="empty-state">
-              No screenshots yet. Upload images to document your findings.
-            </div>
-            <div v-else class="image-gallery">
-              <div v-for="img in target.images" :key="img._id" class="image-card">
-                <img :src="img.path" :alt="img.filename" class="gallery-image" />
-                <div class="image-info">
-                  <span class="image-name">{{ img.filename }}</span>
-                  <span class="image-date">{{ formatDate(img.uploadedAt) }}</span>
-                  <p v-if="img.description" class="image-desc">{{ img.description }}</p>
+            <div class="notes-editor">
+              <!-- Quill Rich Text Editor -->
+              <div class="quill-wrapper">
+                <QuillEditor 
+                  ref="quill"
+                  v-model:content="notes" 
+                  contentType="html" 
+                  theme="snow" 
+                  toolbar="full"
+                  placehoder="Write your pentest notes here..." 
+                />
+              </div>
+
+              <!-- Inline Images Gallery -->
+              <div v-if="target.images?.length" class="inline-images">
+                <div class="images-header">
+                  <span class="images-label">📸 Gallery / Backups ({{ target.images.length }})</span>
                 </div>
-                <button class="btn btn-sm btn-danger-icon delete-image-btn" @click="deleteImage(img._id)">🗑️</button>
+                <div class="image-gallery">
+                  <div v-for="img in target.images" :key="img._id" class="image-card">
+                    <img :src="img.path" :alt="img.filename" class="gallery-image" @click="openImageModal(img)" />
+                    <div class="image-overlay">
+                      <span class="image-name">{{ img.filename }}</span>
+                      <button class="btn btn-xs btn-danger-icon" @click.stop="deleteImage(img._id)">🗑️</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </BentoCard>
         </BentoGrid>
+
 
         <!-- Command History -->
         <div class="section-header">
@@ -404,6 +431,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Keep existing styles */
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
@@ -560,24 +588,54 @@ onMounted(() => {
   min-width: 140px;
 }
 
-/* Notes */
-.notes-textarea {
-  width: 100%;
-  min-height: 200px;
-  padding: var(--spacing-md);
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  color: var(--text-color);
-  font-family: inherit;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  resize: vertical;
+/* Notes Editor */
+.notes-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
 
-.notes-textarea:focus {
-  outline: none;
-  border-color: var(--primary-color);
+.quill-wrapper {
+  background: white; /* Quill usually needs light background or specialized dark theme configuration */
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  color: black; /* Reset color for editor content */
+  min-height: 400px;
+}
+
+.ql-toolbar {
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ql-container {
+  min-height: 350px;
+  font-size: 1rem;
+}
+
+/* Inline Images */
+.inline-images {
+  border-top: 1px solid var(--glass-border);
+  padding-top: var(--spacing-md);
+}
+
+.images-header {
+  margin-bottom: var(--spacing-sm);
+}
+
+.images-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.images-hint {
+  padding: var(--spacing-md);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: var(--radius-md);
+  border: 1px dashed rgba(99, 102, 241, 0.3);
 }
 
 /* Section Header */
@@ -590,6 +648,7 @@ onMounted(() => {
 
 .section-actions {
   display: flex;
+  align-items: center;
   gap: var(--spacing-sm);
 }
 
@@ -601,8 +660,8 @@ onMounted(() => {
 /* Image Gallery */
 .image-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--spacing-sm);
 }
 
 .image-card {
@@ -615,52 +674,48 @@ onMounted(() => {
 
 .gallery-image {
   width: 100%;
-  height: 150px;
+  height: 100px;
   object-fit: cover;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.2s, filter 0.2s;
 }
 
-.gallery-image:hover {
-  transform: scale(1.02);
+.image-card:hover .gallery-image {
+  filter: brightness(0.7);
 }
 
-.image-info {
-  padding: var(--spacing-sm);
-}
-
-.image-name {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.image-date {
-  display: block;
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-
-.image-desc {
-  margin: 4px 0 0;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.delete-image-btn {
+.image-overlay {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 6px 8px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   opacity: 0;
   transition: opacity 0.2s;
 }
 
-.image-card:hover .delete-image-btn {
+.image-card:hover .image-overlay {
   opacity: 1;
 }
+
+.image-name {
+  font-size: 0.7rem;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%;
+}
+
+.btn-xs {
+  padding: 2px 6px;
+  font-size: 0.7rem;
+}
+
 
 .history-count {
   color: var(--text-muted);
