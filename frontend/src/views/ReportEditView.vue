@@ -341,14 +341,14 @@ function sortVulnerabilities() {
   vulnerabilities.value.sort((a, b) => (b.cvssScore || 0) - (a.cvssScore || 0))
 }
 
-function saveVulnerability() {
+async function saveVulnerability() {
   if (!vulnForm.title) {
     toast.warning('Title is required')
     return
   }
   
-  // Sync legacy file
-  const mainFile = vulnForm.files.length > 0 ? vulnForm.files[0] : null
+  // Sync legacy file (URL string only)
+  const mainFile = (vulnForm.files.length > 0 && vulnForm.files[0]) ? vulnForm.files[0].url : null
   
   const vuln = { 
     ...vulnForm, 
@@ -364,6 +364,7 @@ function saveVulnerability() {
   
   sortVulnerabilities()
   closeVulnModal()
+  await saveReport()
 }
 
 async function removeVuln(index) {
@@ -377,6 +378,7 @@ async function removeVuln(index) {
   if (confirmed) {
     vulnerabilities.value.splice(index, 1)
     toast.success('Vulnerability deleted')
+    await saveReport()
   }
 }
 
