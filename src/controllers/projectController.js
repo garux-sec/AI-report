@@ -63,11 +63,11 @@ exports.updateProject = async (req, res) => {
 
 exports.deleteProject = async (req, res) => {
     try {
-        // Option: Check if reports exist before deleting? For now, we'll allow it but maybe warn in UI.
+        // Cascade delete: delete all reports associated with this project
+        await Report.deleteMany({ project: req.params.id });
+
         await Project.findByIdAndDelete(req.params.id);
-        // Optional: Delete or unlink associated reports
-        // await Report.updateMany({ projectId: req.params.id }, { $unset: { projectId: 1 } });
-        res.json({ message: 'Project deleted' });
+        res.json({ message: 'Project and associated reports deleted' });
     } catch (error) {
         res.status(500).json({ message: 'Error deleting project' });
     }
