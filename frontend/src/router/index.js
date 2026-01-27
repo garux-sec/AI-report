@@ -65,6 +65,12 @@ const routes = [
         name: 'KpiSettings',
         component: () => import('../views/settings/KpiView.vue'),
         meta: { requiresAuth: true }
+    },
+    {
+        path: '/project/:projectId/target/:targetId',
+        name: 'TargetNotes',
+        component: () => import('../views/TargetNotesView.vue'),
+        meta: { requiresAuth: true }
     }
 ]
 

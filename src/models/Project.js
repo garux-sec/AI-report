@@ -29,7 +29,16 @@ const ProjectSchema = new mongoose.Schema({
         appClass: { type: String },
         bu: { type: String },
         it: { type: String },
-        remarks: { type: String }
+        remarks: { type: String },
+        notes: { type: String, default: '' },
+        commandResults: [{
+            command: { type: String, required: true },
+            output: { type: String },
+            kaliRunner: { type: String },
+            kaliRunnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'SSHConfig' },
+            executedAt: { type: Date, default: Date.now },
+            status: { type: String, enum: ['success', 'error'], default: 'success' }
+        }]
     }],
     status: {
         type: String,

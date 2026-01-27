@@ -721,7 +721,9 @@ onMounted(() => {
                 <tr v-for="(target, index) in filteredTargets" :key="target._id">
                   <td class="text-muted">{{ index + 1 }}</td>
                   <td>
-                    <strong>{{ target.name }}</strong>
+                    <router-link :to="`/project/${projectId}/target/${target._id}`" class="target-name-link">
+                      {{ target.name }}
+                    </router-link>
                   </td>
                   <td>
                     <a v-if="target.url" :href="target.url" target="_blank" class="target-url">{{ target.url }}</a>
@@ -738,6 +740,7 @@ onMounted(() => {
                   <td class="remarks-cell">{{ target.remarks || '-' }}</td>
                   <td>
                     <div class="actions-cell">
+                      <router-link :to="`/project/${projectId}/target/${target._id}`" class="btn btn-sm btn-icon btn-success-icon" title="Notes & Commands">📝</router-link>
                       <button class="btn btn-sm btn-icon" @click="openTargetModal(target)" title="Edit">✏️</button>
                       <button class="btn btn-sm btn-icon btn-danger-icon" @click="deleteTarget(target._id)" title="Delete">🗑️</button>
                     </div>
@@ -1217,6 +1220,17 @@ onMounted(() => {
 
 .target-url:hover {
   text-decoration: underline;
+}
+
+.target-name-link {
+  font-weight: 600;
+  color: white;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.target-name-link:hover {
+  color: var(--primary-color);
 }
 
 .app-class-badge {

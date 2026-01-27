@@ -112,9 +112,15 @@ router.delete('/projects/:id', authMiddleware, projectController.deleteProject);
 
 // Project Target Routes
 router.post('/projects/:id/targets', authMiddleware, projectController.addTarget);
+router.get('/projects/:id/targets/:targetId', authMiddleware, projectController.getTarget);
 router.put('/projects/:id/targets/:targetId', authMiddleware, projectController.updateTarget);
 router.delete('/projects/:id/targets/:targetId', authMiddleware, projectController.deleteTarget);
 router.post('/projects/:id/targets/import', authMiddleware, projectController.importTargetsCSV);
+router.put('/projects/:id/targets/:targetId/notes', authMiddleware, projectController.updateTargetNotes);
+router.post('/projects/:id/targets/:targetId/command', authMiddleware, projectController.saveCommandResult);
+
+// SSH Execute Command
+router.post('/ssh-config/execute', authMiddleware, sshController.executeCommand);
 
 console.log('API ROUTES LOADED.');
 module.exports = router;

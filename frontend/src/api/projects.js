@@ -27,6 +27,9 @@ export const projectsApi = {
     addTarget: (projectId, target) =>
         api.post(`/projects/${projectId}/targets`, target),
 
+    getTarget: (projectId, targetId) =>
+        api.get(`/projects/${projectId}/targets/${targetId}`),
+
     updateTarget: (projectId, targetId, target) =>
         api.put(`/projects/${projectId}/targets/${targetId}`, target),
 
@@ -34,5 +37,16 @@ export const projectsApi = {
         api.delete(`/projects/${projectId}/targets/${targetId}`),
 
     importTargets: (projectId, targets) =>
-        api.post(`/projects/${projectId}/targets/import`, { targets })
+        api.post(`/projects/${projectId}/targets/import`, { targets }),
+
+    // Target Notes & Commands
+    updateTargetNotes: (projectId, targetId, notes) =>
+        api.put(`/projects/${projectId}/targets/${targetId}/notes`, { notes }),
+
+    saveCommandResult: (projectId, targetId, result) =>
+        api.post(`/projects/${projectId}/targets/${targetId}/command`, result),
+
+    // Execute command via Kali Runner
+    executeCommand: (configId, command) =>
+        api.post('/ssh-config/execute', { configId, command })
 }

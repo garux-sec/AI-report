@@ -177,3 +177,67 @@ exports.importTargetsCSV = async (req, res) => {
         res.status(500).json({ message: 'Error importing targets', error: error.message });
     }
 };
+
+// Get single target
+exports.getTarget = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        const target = project.targets.id(req.params.targetId);
+        if (!target) return res.status(404).json({ message: 'Target not found' });
+
+        res.json({ target, project: { _id: project._id, name: project.name } });
+    } catch (error) {
+        console.error('Get Target Error:', error);
+        res.status(500).json({ message: 'Error fetching target', error: error.message });
+    }
+};
+
+// Update target notes
+exports.updateTargetNotes = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        const target = project.targets.id(req.params.targetId);
+        if (!target) return res.status(404).json({ message: 'Target not found' });
+
+        target.notes = req.body.notes || '';
+        await project.save();
+
+        res.json({ message: 'Notes updated', target });
+    } catch (error) {
+        console.error('Update Notes Error:', error);
+        res.status(500).json({ message: 'Error updating notes', error: error.message });
+    }
+};
+
+// Save command result to target
+exports.saveCommandResult = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        const target = project.targets.id(req.params.targetId);
+        if (!target) return res.status(404).json({ message: 'Target not found' });
+
+        const { command, output, kaliRunner, kaliRunnerId, status } = req.body;
+
+        target.commandResults.push({
+            command,
+            output,
+            kaliRunner,
+            kaliRunnerId,
+            status: status || 'success',
+            executedAt: new Date()
+        });
+
+        await project.save();
+
+        res.json({ message: 'Command result saved', target });
+    } catch (error) {
+        console.error('Save Command Result Error:', error);
+        res.status(500).json({ message: 'Error saving command result', error: error.message });
+    }
+};
