@@ -21,7 +21,11 @@ const VulnerabilitySchema = new mongoose.Schema({
         default: 'Open'
     },
     file: String, // Base64 image or path (legacy, kept for backward compatibility)
-    files: [String] // Array of Base64 images or paths
+    files: [{
+        url: String, // Base64 image or path
+        description: String,
+        command: String
+    }]
 });
 
 const ReportSchema = new mongoose.Schema({

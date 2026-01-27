@@ -139,12 +139,23 @@ async function loadReport() {
     selectedFrameworkIds.value = (data.frameworks || []).map(f => typeof f === 'string' ? f : f._id)
     selectedTags.value = data.tags || []
     vulnerabilities.value = (data.vulnerabilities || []).map(v => {
-      // Migration logic: Ensure 'files' array exists
-      const files = v.files && v.files.length > 0 ? v.files : (v.file ? [v.file] : [])
+      // Migration logic: Ensure 'files' array exists and is in object format
+      let rawFiles = []
+      if (v.files && v.files.length > 0) {
+        rawFiles = v.files
+      } else if (v.file) {
+        rawFiles = [v.file]
+      }
+
+      const files = rawFiles.map(f => {
+        if (typeof f === 'string') return { url: f, description: '', command: '' }
+        return f
+      })
+
       return {
         ...v,
         files: files,
-        file: files.length > 0 ? files[0] : (v.file || null)
+        file: files.length > 0 ? files[0].url : (v.file || null)
       }
     })
     sortVulnerabilities()
@@ -290,13 +301,10 @@ function openVulnModal(index = -1) {
       cvssVector: v.cvssVector || '',
       cvssScore: v.cvssScore || 0,
       file: v.file || null,
-      files: v.files && v.files.length > 0 ? [...v.files] : (v.file ? [v.file] : [])
+      files: v.files && v.files.length > 0 
+        ? v.files.map(f => (typeof f === 'string' ? { url: f, description: '', command: '' } : { ...f }))
+        : (v.file ? [{ url: v.file, description: '', command: '' }] : [])
     })
-
-    // Legacy support: if files empty but file exists, use file
-    if (vulnForm.files.length === 0 && vulnForm.file) {
-      vulnForm.files.push(vulnForm.file)
-    }
 
     cvssVersion.value = v.cvssVersion || '3.1'
     
@@ -391,8 +399,12 @@ function handleFileUpload(event) {
   Array.from(fileList).forEach(file => {
     const reader = new FileReader()
     reader.onload = (e) => {
-      // Add new file to array
-      vulnForm.files.push(e.target.result)
+      // Add new file to array as an object
+      vulnForm.files.push({
+        url: e.target.result,
+        description: '',
+        command: ''
+      })
       // Update legacy file property if this is the first one
       if (!vulnForm.file) vulnForm.file = e.target.result
     }
@@ -1059,15 +1071,31 @@ onMounted(() => {
             <label class="form-label">Evidence Images (Multiple)</label>
             <input type="file" @change="handleFileUpload" class="file-input" accept="image/*" multiple />
             
-            <div v-if="vulnForm.files && vulnForm.files.length > 0" class="image-gallery mt-5">
-              <div v-for="(img, idx) in vulnForm.files" :key="idx" class="gallery-item">
-                <img 
-                  :src="img" 
-                  alt="Evidence Preview" 
-                  class="gallery-preview" 
-                  @click="openLightbox(img)"
-                />
-                <button type="button" class="remove-img-btn" @click="removeFile(idx)" title="Remove Image">×</button>
+            <div v-if="vulnForm.files && vulnForm.files.length > 0" class="image-gallery-edit mt-5">
+              <div v-for="(imgObj, idx) in vulnForm.files" :key="idx" class="gallery-item-edit">
+                <div class="gallery-preview-wrapper">
+                  <img 
+                    :src="imgObj.url" 
+                    alt="Evidence Preview" 
+                    class="gallery-preview" 
+                    @click="openLightbox(imgObj.url)"
+                  />
+                  <button type="button" class="remove-img-btn" @click="removeFile(idx)" title="Remove Image">×</button>
+                </div>
+                <div class="gallery-inputs">
+                  <textarea 
+                    v-model="imgObj.description" 
+                    class="textarea textarea-sm" 
+                    rows="2" 
+                    placeholder="Image description (e.g. Login bypass attempt)"
+                  ></textarea>
+                  <textarea 
+                    v-model="imgObj.command" 
+                    class="textarea textarea-sm code-font" 
+                    rows="2" 
+                    placeholder="Test command (e.g. curl -X POST ...)"
+                  ></textarea>
+                </div>
               </div>
             </div>
           </div>
@@ -1131,15 +1159,26 @@ onMounted(() => {
           </div>
 
           <div v-if="viewingVuln.files && viewingVuln.files.length > 0" class="view-section">
-            <label class="view-label">Evidence Images</label>
-            <div class="image-gallery">
-              <div v-for="(img, idx) in viewingVuln.files" :key="idx" class="gallery-item">
-                <img 
-                  :src="img" 
-                  alt="Evidence" 
-                  class="gallery-preview" 
-                  @click="openLightbox(img)"
-                />
+            <label class="view-label">Evidence Images & Steps</label>
+            <div class="view-image-list">
+              <div v-for="(imgObj, idx) in viewingVuln.files" :key="idx" class="view-image-item">
+                <div class="view-image-content">
+                  <img 
+                    :src="imgObj.url" 
+                    alt="Evidence" 
+                    class="view-image-preview" 
+                    @click="openLightbox(imgObj.url)"
+                  />
+                  <div class="view-image-metadata" v-if="imgObj.description || imgObj.command">
+                    <div v-if="imgObj.description" class="image-desc">
+                      {{ imgObj.description }}
+                    </div>
+                    <div v-if="imgObj.command" class="image-command">
+                      <span class="command-label">Test Command:</span>
+                      <code class="code-font">{{ imgObj.command }}</code>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2165,16 +2204,109 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.view-modal .image-gallery {
-  grid-template-columns: 1fr;
-  gap: 2rem;
+/* Edit Modal Gallery */
+.image-gallery-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.view-modal .gallery-preview {
+.gallery-item-edit {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 1.5rem;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+}
+
+.gallery-preview-wrapper {
+  position: relative;
+}
+
+.gallery-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.textarea-sm {
+  min-height: 60px !important;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.75rem;
+}
+
+/* View Modal Image List */
+.view-image-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.view-image-item {
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 2rem;
+}
+
+.view-image-item:last-child {
+  border-bottom: none;
+}
+
+.view-image-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.view-image-preview {
   width: 100%;
-  height: auto;
   max-height: 600px;
   object-fit: contain;
+  border-radius: var(--radius-md);
+  cursor: zoom-in;
   background: rgba(0, 0, 0, 0.2);
+}
+
+.view-image-metadata {
+  background: rgba(15, 23, 42, 0.5);
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--primary-color);
+}
+
+.image-desc {
+  color: var(--text-primary);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.image-command {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.command-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.view-image-metadata .code-font {
+  color: #818cf8;
+  display: block;
+  word-break: break-all;
+}
+
+@media (max-width: 600px) {
+  .gallery-item-edit {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
