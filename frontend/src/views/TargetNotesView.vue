@@ -596,11 +596,11 @@ onMounted(() => {
 }
 
 .quill-wrapper {
-  background: white; /* Quill usually needs light background or specialized dark theme configuration */
+  background: white;
   border-radius: var(--radius-md);
   overflow: hidden;
-  color: black; /* Reset color for editor content */
-  height: 600px;
+  color: black;
+  min-height: 300px; /* Initial starting height */
   display: flex;
   flex-direction: column;
 }
@@ -609,12 +609,23 @@ onMounted(() => {
   background: #f3f4f6;
   border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .ql-container {
   flex: 1;
   font-size: 1rem;
-  overflow-y: auto;
+  height: auto;
+  min-height: 250px;
+}
+
+/* Allow editor to grow with content */
+:deep(.ql-editor) {
+  min-height: 250px;
+  height: auto;
+  overflow-y: visible;
 }
 
 /* Inline Images */
