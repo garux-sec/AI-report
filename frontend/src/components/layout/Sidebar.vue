@@ -22,7 +22,7 @@ const settingsItems = [
   { path: '/settings/users', icon: '👥', label: 'Users' },
   { path: '/settings/frameworks', icon: '🔧', label: 'Frameworks' },
   { path: '/settings/ai-connections', icon: '🤖', label: 'AI Connections' },
-  { path: '/settings/ssh-config', icon: '💻', label: 'SSH Configuration' },
+  { path: '/settings/ssh-config', icon: '🔥', label: 'Kali Runner' },
   { path: '/settings/kpi', icon: '📈', label: 'KPI Settings' }
 ]
 
