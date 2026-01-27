@@ -79,7 +79,8 @@ const vulnForm = reactive({
   cvssVector: '',
   cvssScore: 0,
   file: null,
-  files: []
+  files: [],
+  retests: []
 })
 
 // CVSS
@@ -162,9 +163,15 @@ async function loadReport() {
         return f
       })
 
+      const retests = (v.retests || []).map(r => {
+        if (typeof r === 'string') return { url: r, description: '', command: '' }
+        return r
+      })
+
       return {
         ...v,
         files: files,
+        retests: retests,
         file: files.length > 0 ? files[0].url : (v.file || null)
       }
     })
@@ -313,7 +320,10 @@ function openVulnModal(index = -1) {
       file: v.file || null,
       files: v.files && v.files.length > 0 
         ? v.files.map(f => (typeof f === 'string' ? { url: f, description: '', command: '' } : { ...f }))
-        : (v.file ? [{ url: v.file, description: '', command: '' }] : [])
+        : (v.file ? [{ url: v.file, description: '', command: '' }] : []),
+      retests: v.retests && v.retests.length > 0
+        ? v.retests.map(r => (typeof r === 'string' ? { url: r, description: '', command: '' } : { ...r }))
+        : []
     })
 
     cvssVersion.value = v.cvssVersion || '3.1'
@@ -330,7 +340,7 @@ function openVulnModal(index = -1) {
     Object.assign(vulnForm, {
       title: '', severity: 'medium', status: 'Open', owasp: '', affected: '',
       detail: '', fix: '', cvssVersion: '3.1', cvssVector: '', cvssScore: 0, 
-      file: null, files: []
+      file: null, files: [], retests: []
     })
     cvssVersion.value = '3.1'
     cvssState.value = {}
@@ -430,7 +440,29 @@ function handleFileUpload(event) {
 function removeFile(index) {
   vulnForm.files.splice(index, 1)
   // Update legacy file pointer
-  vulnForm.file = vulnForm.files.length > 0 ? vulnForm.files[0] : null
+  vulnForm.file = vulnForm.files.length > 0 ? vulnForm.files[0].url : null
+}
+
+function handleRetestUpload(event) {
+  const fileList = event.target.files
+  if (!fileList.length) return
+
+  Array.from(fileList).forEach(file => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      vulnForm.retests.push({
+        url: e.target.result,
+        description: '',
+        command: ''
+      })
+    }
+    reader.readAsDataURL(file)
+  })
+  event.target.value = ''
+}
+
+function removeRetestFile(index) {
+  vulnForm.retests.splice(index, 1)
 }
 
 // Lightbox
@@ -1111,6 +1143,40 @@ onMounted(() => {
               </div>
             </div>
           </div>
+
+          <!-- Retest Evidence -->
+          <div class="form-group full-width mt-10">
+            <label class="form-label text-success font-bold">Retest Evidence (Verification)</label>
+            <input type="file" @change="handleRetestUpload" class="file-input border-success" accept="image/*" multiple />
+            
+            <div v-if="vulnForm.retests && vulnForm.retests.length > 0" class="image-gallery-edit mt-5">
+              <div v-for="(imgObj, idx) in vulnForm.retests" :key="idx" class="gallery-item-edit border-success">
+                <div class="gallery-preview-wrapper">
+                  <img 
+                    :src="imgObj.url" 
+                    alt="Retest Preview" 
+                    class="gallery-preview" 
+                    @click="openLightbox(imgObj.url)"
+                  />
+                  <button type="button" class="remove-img-btn bg-success" @click="removeRetestFile(idx)" title="Remove Image">×</button>
+                </div>
+                <div class="gallery-inputs">
+                  <textarea 
+                    v-model="imgObj.description" 
+                    class="textarea textarea-sm" 
+                    rows="2" 
+                    placeholder="Retest description (e.g. Verified fix with new input)"
+                  ></textarea>
+                  <textarea 
+                    v-model="imgObj.command" 
+                    class="textarea textarea-sm code-font" 
+                    rows="2" 
+                    placeholder="Verification command..."
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="modal-footer">
@@ -1190,6 +1256,37 @@ onMounted(() => {
                     <div v-if="imgObj.command" class="image-command">
                       <div class="command-header">
                         <span class="command-label">Command</span>
+                        <button type="button" class="btn-copy" @click="copyToClipboard(imgObj.command)" title="Copy Command">
+                          📋 Copy
+                        </button>
+                      </div>
+                      <code class="code-font">{{ imgObj.command }}</code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- View Retest Section -->
+          <div v-if="viewingVuln.retests && viewingVuln.retests.length > 0" class="view-section mt-10">
+            <label class="view-label text-success">✅ Retest Results</label>
+            <div class="view-image-list">
+              <div v-for="(imgObj, idx) in viewingVuln.retests" :key="idx" class="view-image-item border-success">
+                <div class="view-image-content">
+                  <img 
+                    :src="imgObj.url" 
+                    alt="Retest Evidence" 
+                    class="view-image-preview" 
+                    @click="openLightbox(imgObj.url)"
+                  />
+                  <div class="view-image-metadata" v-if="imgObj.description || imgObj.command">
+                    <div v-if="imgObj.description" class="image-desc text-success-light">
+                      {{ imgObj.description }}
+                    </div>
+                    <div v-if="imgObj.command" class="image-command">
+                      <div class="command-header">
+                        <span class="command-label">Verification Command</span>
                         <button type="button" class="btn-copy" @click="copyToClipboard(imgObj.command)" title="Copy Command">
                           📋 Copy
                         </button>
@@ -2364,4 +2461,14 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 }
+
+/* Utilities */
+.mt-5 { margin-top: 1.25rem; }
+.mt-10 { margin-top: 2.5rem; }
+.pb-0 { padding-bottom: 0 !important; }
+.font-bold { font-weight: 700; }
+.text-success { color: var(--success-color, #10b981) !important; }
+.text-success-light { color: #34d399 !important; }
+.border-success { border-color: var(--success-color, #10b981) !important; }
+.bg-success { background-color: var(--success-color, #10b981) !important; }
 </style>

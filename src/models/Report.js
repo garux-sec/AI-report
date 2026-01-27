@@ -25,6 +25,11 @@ const VulnerabilitySchema = new mongoose.Schema({
         url: String, // Base64 image or path
         description: String,
         command: String
+    }],
+    retests: [{
+        url: String,
+        description: String,
+        command: String
     }]
 });
 
