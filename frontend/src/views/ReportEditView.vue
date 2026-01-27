@@ -1136,15 +1136,12 @@ onMounted(() => {
               <span :class="['badge severity-badge', getSeverityClass(viewingVuln.severity)]">
                 {{ viewingVuln.severity.toUpperCase() }} ({{ viewingVuln.cvssScore.toFixed(1) }})
               </span>
+              <span class="view-vector code-font">{{ viewingVuln.cvssVector }}</span>
               <span class="badge badge-secondary">{{ viewingVuln.status || 'Open' }}</span>
               <span v-if="viewingVuln.owasp" class="badge badge-info">{{ viewingVuln.owasp }}</span>
             </div>
           </div>
 
-          <div class="view-section">
-            <label class="view-label">CVSS Vector</label>
-            <div class="view-value code-font text-sm">{{ viewingVuln.cvssVector }}</div>
-          </div>
 
           <div class="view-section">
             <label class="view-label">Affected Component</label>
@@ -2149,6 +2146,16 @@ onMounted(() => {
   font-weight: 700;
   padding: 0.4rem 0.8rem;
   font-size: 0.9rem;
+}
+
+.view-vector {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
 }
 
 .view-section {
