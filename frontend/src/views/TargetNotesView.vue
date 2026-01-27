@@ -600,17 +600,21 @@ onMounted(() => {
   border-radius: var(--radius-md);
   overflow: hidden;
   color: black; /* Reset color for editor content */
-  min-height: 400px;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
 }
 
 .ql-toolbar {
   background: #f3f4f6;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 .ql-container {
-  min-height: 350px;
+  flex: 1;
   font-size: 1rem;
+  overflow-y: auto;
 }
 
 /* Inline Images */
