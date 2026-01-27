@@ -1142,6 +1142,11 @@ onMounted(() => {
           </div>
 
           <div class="view-section">
+            <label class="view-label">CVSS Vector</label>
+            <div class="view-value code-font text-sm">{{ viewingVuln.cvssVector }}</div>
+          </div>
+
+          <div class="view-section">
             <label class="view-label">Affected Component</label>
             <div class="view-value code-font">{{ viewingVuln.affected || 'N/A' }}</div>
           </div>
@@ -1183,10 +1188,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="view-section">
-            <label class="view-label">CVSS Vector</label>
-            <div class="view-value code-font text-sm">{{ viewingVuln.cvssVector }}</div>
-          </div>
         </div>
 
         <div class="modal-footer">
