@@ -142,10 +142,10 @@ onMounted(fetchConfigs)
 </script>
 
 <template>
-  <div class="dashboard-container">
+  <div class="dashboard-layout">
     <Sidebar />
     <main class="main-content">
-      <header class="content-header">
+      <header class="page-header">
         <div class="header-title">
           <h1>💻 SSH Configuration</h1>
           <p class="text-muted">Manage SSH access to Kali Linux for testing and data collection</p>
@@ -257,6 +257,25 @@ onMounted(fetchConfigs)
 </template>
 
 <style scoped>
+.dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  padding: var(--spacing-lg);
+  overflow-y: auto;
+  background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.1), transparent 40%);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
 .config-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
