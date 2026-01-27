@@ -46,9 +46,8 @@ const SSHConfigSchema = new mongoose.Schema({
     }
 });
 
-SSHConfigSchema.pre('save', function (next) {
+SSHConfigSchema.pre('save', async function () {
     this.updatedAt = Date.now();
-    next();
 });
 
 module.exports = mongoose.model('SSHConfig', SSHConfigSchema);
