@@ -25,7 +25,8 @@ const form = reactive({
   username: '',
   password: '',
   privateKey: '',
-  passphrase: ''
+  passphrase: '',
+  enabled: true
 })
 
 const fetchConfigs = async () => {
@@ -43,7 +44,16 @@ const fetchConfigs = async () => {
 
 const checkAllStatuses = () => {
   configs.value.forEach(config => {
-    checkStatus(config)
+    // Initialize with persisted status
+    if (config.lastStatus && config.lastStatus !== 'unknown') {
+      statusMap[config._id] = config.lastStatus
+    }
+    
+    if (config.enabled !== false) {
+      checkStatus(config)
+    } else {
+      statusMap[config._id] = 'disabled'
+    }
   })
 }
 
@@ -51,9 +61,16 @@ const checkStatus = async (config) => {
   statusMap[config._id] = 'checking'
   try {
     const result = await sshApi.testConnection(config)
-    statusMap[config._id] = result.success ? 'online' : 'offline'
+    const newStatus = result.success ? 'online' : 'offline'
+    statusMap[config._id] = newStatus
+    
+    // Save status to database
+    await sshApi.updateStatus(config._id, newStatus)
+    config.lastStatus = newStatus
   } catch (err) {
     statusMap[config._id] = 'offline'
+    await sshApi.updateStatus(config._id, 'offline')
+    config.lastStatus = 'offline'
   }
 }
 
@@ -66,7 +83,8 @@ const openAddModal = () => {
     username: '',
     password: '',
     privateKey: '',
-    passphrase: ''
+    passphrase: '',
+    enabled: true
   })
   showModal.value = true
 }
@@ -80,7 +98,8 @@ const openEditModal = (config) => {
     username: config.username,
     password: config.password || '',
     privateKey: config.privateKey || '',
-    passphrase: config.passphrase || ''
+    passphrase: config.passphrase || '',
+    enabled: config.enabled !== false
   })
   showModal.value = true
 }
@@ -159,6 +178,23 @@ const makeDefault = async (id) => {
   }
 }
 
+const toggleEnabled = async (config) => {
+  try {
+    const newState = !config.enabled
+    await sshApi.updateConfig(config._id, { enabled: newState })
+    config.enabled = newState
+    toast.success(newState ? 'Connection enabled' : 'Connection disabled')
+    
+    if (newState) {
+      checkStatus(config)
+    } else {
+      statusMap[config._id] = 'disabled'
+    }
+  } catch (err) {
+    toast.error('Failed to toggle status')
+  }
+}
+
 onMounted(fetchConfigs)
 </script>
 
@@ -192,11 +228,17 @@ onMounted(fetchConfigs)
                     <span class="provider-label">Kali Linux</span>
                     <span class="status-dot" :class="statusMap[config._id] || 'unknown'" :title="statusMap[config._id]"></span>
                     <span class="status-text" :class="statusMap[config._id] || 'unknown'">
-                      {{ statusMap[config._id] === 'checking' ? 'Checking...' : (statusMap[config._id] === 'online' ? 'Online' : 'Offline') }}
+                      {{ statusMap[config._id] === 'checking' ? 'Checking...' : (statusMap[config._id] === 'online' ? 'Online' : (statusMap[config._id] === 'disabled' ? 'Disabled' : 'Offline')) }}
                     </span>
                   </div>
                 </div>
-                <span v-if="config.isDefault" class="badge badge-low">Default</span>
+                <div class="flex items-center gap-sm">
+                  <label class="switch-sm" title="Enable/Disable Status Check">
+                    <input type="checkbox" :checked="config.enabled !== false" @change="toggleEnabled(config)">
+                    <span class="slider-sm"></span>
+                  </label>
+                  <span v-if="config.isDefault" class="badge badge-low">Default</span>
+                </div>
               </div>
               <div class="config-details">
                 <p><strong>Host:</strong> {{ config.host }}:{{ config.port }}</p>
@@ -255,6 +297,15 @@ onMounted(fetchConfigs)
           <div class="form-group" v-if="form.privateKey">
             <label class="form-label">Key Passphrase</label>
             <input v-model="form.passphrase" type="password" class="input" placeholder="••••••••" />
+          </div>
+          <div class="form-group">
+            <label class="flex items-center gap-sm cursor-pointer">
+              <div class="switch">
+                <input type="checkbox" v-model="form.enabled">
+                <span class="slider round"></span>
+              </div>
+              <span class="form-label mb-0">Enable Status Monitoring</span>
+            </label>
           </div>
         </div>
         <div class="modal-footer">
@@ -332,6 +383,7 @@ onMounted(fetchConfigs)
 .status-dot.online { background: var(--success-color); box-shadow: 0 0 8px var(--success-color); }
 .status-dot.offline { background: var(--danger-color); }
 .status-dot.checking { background: var(--warning-color); animation: pulse 1.5s infinite; }
+.status-dot.disabled { background: #64748b; opacity: 0.5; }
 
 .status-text {
   font-size: 0.7rem;
@@ -342,12 +394,114 @@ onMounted(fetchConfigs)
 .status-text.online { color: var(--success-color); }
 .status-text.offline { color: var(--danger-color); }
 .status-text.checking { color: var(--warning-color); }
+.status-text.disabled { color: #64748b; }
 
 @keyframes pulse {
   0% { opacity: 1; }
   50% { opacity: 0.5; }
   100% { opacity: 1; }
 }
+
+/* Switch Styles */
+.switch-sm {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+
+.switch-sm input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider-sm {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: .4s;
+  border-radius: 18px;
+  border: 1px solid var(--glass-border);
+}
+
+.slider-sm:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider-sm {
+  background-color: var(--success-color);
+}
+
+input:checked + .slider-sm:before {
+  transform: translateX(14px);
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  transition: .4s;
+  border: 1px solid var(--glass-border);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+}
+
+.slider.round {
+  border-radius: 24px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.mb-0 { margin-bottom: 0 !important; }
 
 .config-details {
   margin-bottom: var(--spacing-md);

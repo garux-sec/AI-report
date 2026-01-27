@@ -36,6 +36,19 @@ const SSHConfigSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    enabled: {
+        type: Boolean,
+        default: true
+    },
+    lastStatus: {
+        type: String,
+        enum: ['online', 'offline', 'disabled', 'unknown'],
+        default: 'unknown'
+    },
+    lastChecked: {
+        type: Date,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now
