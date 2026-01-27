@@ -23,6 +23,16 @@ const isGeneratingSingleAI = ref(false)
 const aiProgress = ref(0)
 const aiLanguage = ref('th') // 'en' or 'th'
 
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text)
+    toast.success('Command copied to clipboard!')
+  } catch (err) {
+    console.error('Failed to copy:', err)
+    toast.error('Failed to copy to clipboard')
+  }
+}
+
 // Form Data
 const formData = reactive({
   systemName: '',
@@ -1095,7 +1105,7 @@ onMounted(() => {
                     v-model="imgObj.command" 
                     class="textarea textarea-sm code-font" 
                     rows="2" 
-                    placeholder="Test command (e.g. curl -X POST ...)"
+                    placeholder="Command (e.g. curl -X POST ...)"
                   ></textarea>
                 </div>
               </div>
@@ -1178,7 +1188,12 @@ onMounted(() => {
                       {{ imgObj.description }}
                     </div>
                     <div v-if="imgObj.command" class="image-command">
-                      <span class="command-label">Test Command:</span>
+                      <div class="command-header">
+                        <span class="command-label">Command</span>
+                        <button type="button" class="btn-copy" @click="copyToClipboard(imgObj.command)" title="Copy Command">
+                          📋 Copy
+                        </button>
+                      </div>
                       <code class="code-font">{{ imgObj.command }}</code>
                     </div>
                   </div>
@@ -2297,6 +2312,36 @@ onMounted(() => {
   padding: 1rem;
   border-radius: var(--radius-sm);
   border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.command-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.btn-copy {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-copy:hover {
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+}
+
+.btn-copy:active {
+  transform: translateY(0);
 }
 
 .command-label {
