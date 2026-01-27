@@ -22,11 +22,16 @@ const notes = ref('')
 const isLoading = ref(true)
 const isSaving = ref(false)
 const isExecuting = ref(false)
+const isUploading = ref(false)
 
 // Kali Runners
 const kaliRunners = ref([])
 const selectedRunner = ref('')
 const command = ref('')
+
+// Image upload
+const imageFileInput = ref(null)
+const imageDescription = ref('')
 
 // Preset commands
 const presetCommands = [
@@ -166,6 +171,48 @@ const goBack = () => {
   router.push(`/project/${projectId.value}`)
 }
 
+// Image functions
+const triggerImageUpload = () => {
+  imageFileInput.value?.click()
+}
+
+const handleImageUpload = async (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  try {
+    isUploading.value = true
+    const formData = new FormData()
+    formData.append('image', file)
+    formData.append('description', imageDescription.value)
+
+    await projectsApi.uploadTargetImage(projectId.value, targetId.value, formData)
+    await loadTarget()
+    
+    toast.success('Image uploaded')
+    imageDescription.value = ''
+    event.target.value = ''
+  } catch (error) {
+    console.error('Image upload failed:', error)
+    toast.error('Failed to upload image')
+  } finally {
+    isUploading.value = false
+  }
+}
+
+const deleteImage = async (imageId) => {
+  if (!confirm('Delete this image?')) return
+
+  try {
+    await projectsApi.deleteTargetImage(projectId.value, targetId.value, imageId)
+    await loadTarget()
+    toast.success('Image deleted')
+  } catch (error) {
+    console.error('Delete image failed:', error)
+    toast.error('Failed to delete image')
+  }
+}
+
 onMounted(() => {
   loadTarget()
   loadKaliRunners()
@@ -284,6 +331,41 @@ onMounted(() => {
               placeholder="Write your pentest notes here... (auto-saved)"
               rows="10"
             ></textarea>
+          </BentoCard>
+        </BentoGrid>
+
+        <!-- Screenshots Section -->
+        <div class="section-header">
+          <h2 class="section-title">📸 Screenshots</h2>
+          <div class="section-actions">
+            <input 
+              ref="imageFileInput" 
+              type="file" 
+              accept="image/*" 
+              @change="handleImageUpload" 
+              style="display: none" 
+            />
+            <button class="btn btn-sm btn-primary" @click="triggerImageUpload" :disabled="isUploading">
+              {{ isUploading ? '⏳ Uploading...' : '📤 Upload Image' }}
+            </button>
+          </div>
+        </div>
+        <BentoGrid>
+          <BentoCard :span="4">
+            <div v-if="!target.images?.length" class="empty-state">
+              No screenshots yet. Upload images to document your findings.
+            </div>
+            <div v-else class="image-gallery">
+              <div v-for="img in target.images" :key="img._id" class="image-card">
+                <img :src="img.path" :alt="img.filename" class="gallery-image" />
+                <div class="image-info">
+                  <span class="image-name">{{ img.filename }}</span>
+                  <span class="image-date">{{ formatDate(img.uploadedAt) }}</span>
+                  <p v-if="img.description" class="image-desc">{{ img.description }}</p>
+                </div>
+                <button class="btn btn-sm btn-danger-icon delete-image-btn" @click="deleteImage(img._id)">🗑️</button>
+              </div>
+            </div>
           </BentoCard>
         </BentoGrid>
 
@@ -506,9 +588,78 @@ onMounted(() => {
   margin: var(--spacing-xl) 0 var(--spacing-md);
 }
 
+.section-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
 .section-title {
   margin: 0;
   font-size: 1.25rem;
+}
+
+/* Image Gallery */
+.image-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.image-card {
+  position: relative;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.gallery-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.gallery-image:hover {
+  transform: scale(1.02);
+}
+
+.image-info {
+  padding: var(--spacing-sm);
+}
+
+.image-name {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.image-date {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.image-desc {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.delete-image-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.image-card:hover .delete-image-btn {
+  opacity: 1;
 }
 
 .history-count {

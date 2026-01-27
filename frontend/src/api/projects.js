@@ -48,5 +48,14 @@ export const projectsApi = {
 
     // Execute command via Kali Runner
     executeCommand: (configId, command) =>
-        api.post('/ssh-config/execute', { configId, command })
+        api.post('/ssh-config/execute', { configId, command }),
+
+    // Target Images
+    uploadTargetImage: (projectId, targetId, formData) =>
+        api.post(`/projects/${projectId}/targets/${targetId}/images`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        }),
+
+    deleteTargetImage: (projectId, targetId, imageId) =>
+        api.delete(`/projects/${projectId}/targets/${targetId}/images/${imageId}`)
 }

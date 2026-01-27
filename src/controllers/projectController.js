@@ -241,3 +241,51 @@ exports.saveCommandResult = async (req, res) => {
         res.status(500).json({ message: 'Error saving command result', error: error.message });
     }
 };
+
+// Upload image to target
+exports.uploadTargetImage = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        const target = project.targets.id(req.params.targetId);
+        if (!target) return res.status(404).json({ message: 'Target not found' });
+
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        target.images.push({
+            filename: req.file.originalname,
+            path: '/uploads/targets/' + req.file.filename,
+            description: req.body.description || '',
+            uploadedAt: new Date()
+        });
+
+        await project.save();
+
+        res.json({ message: 'Image uploaded', target });
+    } catch (error) {
+        console.error('Upload Image Error:', error);
+        res.status(500).json({ message: 'Error uploading image', error: error.message });
+    }
+};
+
+// Delete image from target
+exports.deleteTargetImage = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        const target = project.targets.id(req.params.targetId);
+        if (!target) return res.status(404).json({ message: 'Target not found' });
+
+        target.images.pull(req.params.imageId);
+        await project.save();
+
+        res.json({ message: 'Image deleted', target });
+    } catch (error) {
+        console.error('Delete Image Error:', error);
+        res.status(500).json({ message: 'Error deleting image', error: error.message });
+    }
+};

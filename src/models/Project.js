@@ -38,6 +38,12 @@ const ProjectSchema = new mongoose.Schema({
             kaliRunnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'SSHConfig' },
             executedAt: { type: Date, default: Date.now },
             status: { type: String, enum: ['success', 'error'], default: 'success' }
+        }],
+        images: [{
+            filename: { type: String, required: true },
+            path: { type: String, required: true },
+            description: { type: String },
+            uploadedAt: { type: Date, default: Date.now }
         }]
     }],
     status: {

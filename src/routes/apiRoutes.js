@@ -119,6 +119,23 @@ router.post('/projects/:id/targets/import', authMiddleware, projectController.im
 router.put('/projects/:id/targets/:targetId/notes', authMiddleware, projectController.updateTargetNotes);
 router.post('/projects/:id/targets/:targetId/command', authMiddleware, projectController.saveCommandResult);
 
+// Multer for Target Images
+const targetImageStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '../../public/uploads/targets');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+const targetImageUpload = multer({ storage: targetImageStorage });
+
+// Target Image Routes
+router.post('/projects/:id/targets/:targetId/images', authMiddleware, targetImageUpload.single('image'), projectController.uploadTargetImage);
+router.delete('/projects/:id/targets/:targetId/images/:imageId', authMiddleware, projectController.deleteTargetImage);
+
 // SSH Execute Command
 router.post('/ssh-config/execute', authMiddleware, sshController.executeCommand);
 
