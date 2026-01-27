@@ -51,8 +51,11 @@ const showTagSuggestions = ref(false)
 // Vulnerabilities
 const vulnerabilities = ref([])
 const showVulnModal = ref(false)
+const showViewModal = ref(false)
 const showLightbox = ref(false)
 const editingIndex = ref(-1)
+const viewingIndex = ref(-1)
+const viewingVuln = ref(null)
 
 const vulnForm = reactive({
   title: '',
@@ -367,6 +370,17 @@ async function removeVuln(index) {
     vulnerabilities.value.splice(index, 1)
     toast.success('Vulnerability deleted')
   }
+}
+
+function viewVulnerability(index) {
+  viewingIndex.value = index
+  viewingVuln.value = { ...vulnerabilities.value[index] }
+  showViewModal.value = true
+}
+
+function closeViewModal() {
+  showViewModal.value = false
+  viewingVuln.value = null
 }
 
 // Image Handlers
@@ -870,7 +884,8 @@ onMounted(() => {
               <div 
                 v-for="(v, idx) in vulnerabilities" 
                 :key="idx"
-                class="vuln-item"
+                class="vuln-item cursor-pointer"
+                @click="viewVulnerability(idx)"
               >
                 <div class="vuln-info">
                   <span class="vuln-bar" :class="getSeverityBarColor(v.severity)"></span>
@@ -881,10 +896,13 @@ onMounted(() => {
                   </div>
                 </div>
                 <div class="vuln-actions">
-                  <button type="button" class="btn-icon" @click="openVulnModal(idx)" title="Edit">
+                  <button type="button" class="btn-icon" @click.stop="viewVulnerability(idx)" title="View Details">
+                    👁️
+                  </button>
+                  <button type="button" class="btn-icon" @click.stop="openVulnModal(idx)" title="Edit">
                     ✏️
                   </button>
-                  <button type="button" class="btn-icon btn-danger" @click="removeVuln(idx)" title="Delete">
+                  <button type="button" class="btn-icon btn-danger" @click.stop="removeVuln(idx)" title="Delete">
                     🗑️
                   </button>
                 </div>
@@ -1071,6 +1089,72 @@ onMounted(() => {
               {{ editingIndex >= 0 ? 'Update Vulnerability' : 'Add Vulnerability' }}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- View Vulnerability Modal -->
+    <div v-if="showViewModal && viewingVuln" class="modal-backdrop" @click.self="closeViewModal">
+      <div class="modal view-modal">
+        <div class="modal-header">
+          <h3>🔍 Vulnerability Details</h3>
+          <button type="button" class="modal-close" @click="closeViewModal">×</button>
+        </div>
+        
+        <div class="modal-body pb-0">
+          <div class="view-header">
+            <h2 class="view-title">{{ viewingVuln.title }}</h2>
+            <div class="view-meta">
+              <span :class="['badge severity-badge', getSeverityClass(viewingVuln.severity)]">
+                {{ viewingVuln.severity.toUpperCase() }} ({{ viewingVuln.cvssScore.toFixed(1) }})
+              </span>
+              <span class="badge badge-secondary">{{ viewingVuln.status || 'Open' }}</span>
+              <span v-if="viewingVuln.owasp" class="badge badge-info">{{ viewingVuln.owasp }}</span>
+            </div>
+          </div>
+
+          <div class="view-section">
+            <label class="view-label">Affected Component</label>
+            <div class="view-value code-font">{{ viewingVuln.affected || 'N/A' }}</div>
+          </div>
+
+          <div class="view-grid">
+            <div class="view-section">
+              <label class="view-label">Description & Impact</label>
+              <div class="view-value white-space-pre">{{ viewingVuln.detail || 'No description provided.' }}</div>
+            </div>
+
+            <div class="view-section">
+              <label class="view-label">Recommendation</label>
+              <div class="view-value white-space-pre">{{ viewingVuln.fix || 'No recommendation provided.' }}</div>
+            </div>
+          </div>
+
+          <div v-if="viewingVuln.files && viewingVuln.files.length > 0" class="view-section">
+            <label class="view-label">Evidence Images</label>
+            <div class="image-gallery">
+              <div v-for="(img, idx) in viewingVuln.files" :key="idx" class="gallery-item">
+                <img 
+                  :src="img" 
+                  alt="Evidence" 
+                  class="gallery-preview" 
+                  @click="openLightbox(img)"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="view-section">
+            <label class="view-label">CVSS Vector</label>
+            <div class="view-value code-font text-sm">{{ viewingVuln.cvssVector }}</div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeViewModal">Close</button>
+          <button type="button" class="btn btn-primary" @click="openVulnModal(viewingIndex); closeViewModal()">
+            Edit Finding
+          </button>
         </div>
       </div>
     </div>
@@ -1986,5 +2070,111 @@ onMounted(() => {
     width: 100%;
     flex-direction: column;
   }
+}
+
+.pb-0 {
+  padding-bottom: 0;
+}
+
+/* View Modal Specifics */
+.view-modal {
+  max-width: 900px !important;
+  width: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.view-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.view-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+.view-meta {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.severity-badge {
+  font-weight: 700;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+}
+
+.view-section {
+  margin-bottom: 2rem;
+}
+
+.view-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.view-value {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  background: rgba(15, 23, 42, 0.3);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.view-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .view-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.code-font {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+}
+
+.white-space-pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.text-sm {
+  font-size: 0.8rem;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.view-modal .image-gallery {
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+.view-modal .gallery-preview {
+  width: 100%;
+  height: auto;
+  max-height: 600px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.2);
 }
 </style>
