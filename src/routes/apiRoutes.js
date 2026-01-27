@@ -110,5 +110,11 @@ router.put('/projects/:id', authMiddleware, upload.fields([{ name: 'logo', maxCo
 router.post('/projects/:id/clone', authMiddleware, projectController.cloneProject);
 router.delete('/projects/:id', authMiddleware, projectController.deleteProject);
 
+// Project Target Routes
+router.post('/projects/:id/targets', authMiddleware, projectController.addTarget);
+router.put('/projects/:id/targets/:targetId', authMiddleware, projectController.updateTarget);
+router.delete('/projects/:id/targets/:targetId', authMiddleware, projectController.deleteTarget);
+router.post('/projects/:id/targets/import', authMiddleware, projectController.importTargetsCSV);
+
 console.log('API ROUTES LOADED.');
 module.exports = router;

@@ -96,3 +96,84 @@ exports.cloneProject = async (req, res) => {
         res.status(500).json({ message: 'Error cloning project', error: error.message });
     }
 };
+
+// Target Management
+exports.addTarget = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        project.targets.push(req.body);
+        await project.save();
+
+        res.status(201).json(project);
+    } catch (error) {
+        console.error('Add Target Error:', error);
+        res.status(500).json({ message: 'Error adding target', error: error.message });
+    }
+};
+
+exports.updateTarget = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        const target = project.targets.id(req.params.targetId);
+        if (!target) return res.status(404).json({ message: 'Target not found' });
+
+        Object.assign(target, req.body);
+        await project.save();
+
+        res.json(project);
+    } catch (error) {
+        console.error('Update Target Error:', error);
+        res.status(500).json({ message: 'Error updating target', error: error.message });
+    }
+};
+
+exports.deleteTarget = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        project.targets.pull(req.params.targetId);
+        await project.save();
+
+        res.json(project);
+    } catch (error) {
+        console.error('Delete Target Error:', error);
+        res.status(500).json({ message: 'Error deleting target', error: error.message });
+    }
+};
+
+exports.importTargetsCSV = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        const { targets } = req.body;
+        if (!Array.isArray(targets)) {
+            return res.status(400).json({ message: 'Invalid targets data' });
+        }
+
+        // Append imported targets
+        targets.forEach(target => {
+            if (target.name) {
+                project.targets.push({
+                    name: target.name || '',
+                    url: target.url || '',
+                    appClass: target.appClass || '',
+                    bu: target.bu || '',
+                    it: target.it || '',
+                    remarks: target.remarks || ''
+                });
+            }
+        });
+
+        await project.save();
+        res.json({ message: `Imported ${targets.length} targets`, project });
+    } catch (error) {
+        console.error('Import Targets Error:', error);
+        res.status(500).json({ message: 'Error importing targets', error: error.message });
+    }
+};

@@ -23,6 +23,14 @@ const ProjectSchema = new mongoose.Schema({
     pentesterEmail: String,
     logoUrl: String, // Path to uploaded logo
     backgroundUrl: String, // Path to uploaded background
+    targets: [{
+        name: { type: String, required: true },
+        url: { type: String },
+        appClass: { type: String },
+        bu: { type: String },
+        it: { type: String },
+        remarks: { type: String }
+    }],
     status: {
         type: String,
         enum: ['active', 'archived', 'completed'],

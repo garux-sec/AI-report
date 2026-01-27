@@ -21,5 +21,18 @@ export const projectsApi = {
         api.delete(`/projects/${id}`),
 
     clone: (id) =>
-        api.post(`/projects/${id}/clone`)
+        api.post(`/projects/${id}/clone`),
+
+    // Target Management
+    addTarget: (projectId, target) =>
+        api.post(`/projects/${projectId}/targets`, target),
+
+    updateTarget: (projectId, targetId, target) =>
+        api.put(`/projects/${projectId}/targets/${targetId}`, target),
+
+    deleteTarget: (projectId, targetId) =>
+        api.delete(`/projects/${projectId}/targets/${targetId}`),
+
+    importTargets: (projectId, targets) =>
+        api.post(`/projects/${projectId}/targets/import`, { targets })
 }
