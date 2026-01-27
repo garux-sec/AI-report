@@ -220,14 +220,6 @@ onMounted(fetchConfigs)
               class="config-card"
               :class="{ default: config.isDefault, disabled: config.enabled === false }"
             >
-              <!-- Status Badge -->
-              <div class="status-badge" :class="statusMap[config._id] || 'unknown'">
-                <span class="status-dot-badge"></span>
-                <span class="status-label">
-                  {{ statusMap[config._id] === 'checking' ? 'Checking' : (statusMap[config._id] === 'online' ? 'Online' : (statusMap[config._id] === 'disabled' ? 'Disabled' : 'Offline')) }}
-                </span>
-              </div>
-
               <div class="config-header">
                 <div class="machine-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -240,8 +232,14 @@ onMounted(fetchConfigs)
                   <h4>{{ config.name }}</h4>
                   <span class="provider-label">Kali Linux</span>
                 </div>
-                <div class="config-badges">
+                <div class="header-badges">
                   <span v-if="config.isDefault" class="badge badge-primary">Default</span>
+                  <div class="status-badge" :class="statusMap[config._id] || 'unknown'">
+                    <span class="status-dot-badge"></span>
+                    <span class="status-label">
+                      {{ statusMap[config._id] === 'checking' ? 'Checking' : (statusMap[config._id] === 'online' ? 'Online' : (statusMap[config._id] === 'disabled' ? 'Disabled' : 'Offline')) }}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -407,9 +405,6 @@ onMounted(fetchConfigs)
 
 /* Status Badge */
 .status-badge {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -474,10 +469,9 @@ onMounted(fetchConfigs)
 /* Header */
 .config-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
   margin-bottom: 1.25rem;
-  padding-right: 80px;
 }
 
 .machine-icon {
@@ -514,18 +508,21 @@ onMounted(fetchConfigs)
   letter-spacing: 0.5px;
 }
 
-.config-badges {
+.header-badges {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .badge-primary {
   background: linear-gradient(135deg, var(--success-color), #34d399);
   color: white;
   font-size: 0.65rem;
-  padding: 3px 8px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 /* Details */
