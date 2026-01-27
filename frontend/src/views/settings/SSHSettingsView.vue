@@ -218,42 +218,66 @@ onMounted(fetchConfigs)
               v-for="config in configs" 
               :key="config._id"
               class="config-card"
-              :class="{ default: config.isDefault }"
+              :class="{ default: config.isDefault, disabled: config.enabled === false }"
             >
+              <!-- Status Badge -->
+              <div class="status-badge" :class="statusMap[config._id] || 'unknown'">
+                <span class="status-dot-badge"></span>
+                <span class="status-label">
+                  {{ statusMap[config._id] === 'checking' ? 'Checking' : (statusMap[config._id] === 'online' ? 'Online' : (statusMap[config._id] === 'disabled' ? 'Disabled' : 'Offline')) }}
+                </span>
+              </div>
+
               <div class="config-header">
-                <span class="provider-icon">💻</span>
+                <div class="machine-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="4" width="20" height="12" rx="2"/>
+                    <line x1="6" y1="20" x2="18" y2="20"/>
+                    <line x1="12" y1="16" x2="12" y2="20"/>
+                  </svg>
+                </div>
                 <div class="config-info">
                   <h4>{{ config.name }}</h4>
-                  <div class="flex items-center gap-xs">
-                    <span class="provider-label">Kali Linux</span>
-                    <span class="status-dot" :class="statusMap[config._id] || 'unknown'" :title="statusMap[config._id]"></span>
-                    <span class="status-text" :class="statusMap[config._id] || 'unknown'">
-                      {{ statusMap[config._id] === 'checking' ? 'Checking...' : (statusMap[config._id] === 'online' ? 'Online' : (statusMap[config._id] === 'disabled' ? 'Disabled' : 'Offline')) }}
-                    </span>
-                  </div>
+                  <span class="provider-label">Kali Linux</span>
                 </div>
-                <div class="flex items-center gap-sm">
-                  <label class="switch-sm" title="Enable/Disable Status Check">
-                    <input type="checkbox" :checked="config.enabled !== false" @change="toggleEnabled(config)">
-                    <span class="slider-sm"></span>
-                  </label>
-                  <span v-if="config.isDefault" class="badge badge-low">Default</span>
+                <div class="config-badges">
+                  <span v-if="config.isDefault" class="badge badge-primary">Default</span>
                 </div>
               </div>
+
               <div class="config-details">
-                <p><strong>Host:</strong> {{ config.host }}:{{ config.port }}</p>
-                <p><strong>Username:</strong> {{ config.username }}</p>
+                <div class="detail-row">
+                  <span class="detail-icon">🌐</span>
+                  <span class="detail-value">{{ config.host }}:{{ config.port }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-icon">👤</span>
+                  <span class="detail-value">{{ config.username }}</span>
+                </div>
               </div>
-              <div class="config-actions">
-                <button 
-                  v-if="!config.isDefault"
-                  class="btn btn-sm btn-secondary"
-                  @click="makeDefault(config._id)"
-                >
-                  Set Default
-                </button>
-                <button class="btn btn-sm btn-secondary" @click="openEditModal(config)">Edit</button>
-                <button class="btn btn-sm btn-danger" @click="deleteConfig(config._id)">Delete</button>
+
+              <div class="config-footer">
+                <label class="toggle-wrapper" title="Enable/Disable Status Check">
+                  <input type="checkbox" :checked="config.enabled !== false" @change="toggleEnabled(config)">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">{{ config.enabled !== false ? 'Enabled' : 'Disabled' }}</span>
+                </label>
+                <div class="config-actions">
+                  <button 
+                    v-if="!config.isDefault"
+                    class="btn-icon" 
+                    @click="makeDefault(config._id)"
+                    title="Set as Default"
+                  >
+                    ⭐
+                  </button>
+                  <button class="btn-icon" @click="openEditModal(config)" title="Edit">
+                    ✏️
+                  </button>
+                  <button class="btn-icon btn-danger" @click="deleteConfig(config._id)" title="Delete">
+                    🗑️
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -332,123 +356,296 @@ onMounted(fetchConfigs)
 
 .config-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
 }
 
 .config-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
+  position: relative;
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.config-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-color), #818cf8);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.config-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.config-card:hover::before {
+  opacity: 1;
 }
 
 .config-card.default {
   border-color: var(--success-color);
 }
 
-.config-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+.config-card.default::before {
+  background: linear-gradient(90deg, var(--success-color), #34d399);
+  opacity: 1;
 }
 
-.provider-icon {
-  font-size: 1.5rem;
+.config-card.disabled {
+  opacity: 0.6;
+}
+
+/* Status Badge */
+.status-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.online {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-badge.offline {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.status-badge.checking {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-badge.disabled {
+  background: rgba(100, 116, 139, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.status-dot-badge {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-badge.online .status-dot-badge {
+  box-shadow: 0 0 8px currentColor;
+  animation: glow 2s ease-in-out infinite;
+}
+
+.status-badge.checking .status-dot-badge {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.5; }
+}
+
+/* Header */
+.config-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-right: 80px;
+}
+
+.machine-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.1));
+  border-radius: 12px;
+  color: #818cf8;
+  flex-shrink: 0;
 }
 
 .config-info {
   flex: 1;
+  min-width: 0;
 }
 
 .config-info h4 {
-  margin: 0;
-  font-size: 1rem;
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .provider-label {
   font-size: 0.75rem;
   color: var(--text-muted);
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text-muted);
+.config-badges {
+  display: flex;
+  gap: 0.5rem;
 }
 
-.status-dot.online { background: var(--success-color); box-shadow: 0 0 8px var(--success-color); }
-.status-dot.offline { background: var(--danger-color); }
-.status-dot.checking { background: var(--warning-color); animation: pulse 1.5s infinite; }
-.status-dot.disabled { background: #64748b; opacity: 0.5; }
-
-.status-text {
-  font-size: 0.7rem;
-  font-weight: 500;
-  text-transform: uppercase;
+.badge-primary {
+  background: linear-gradient(135deg, var(--success-color), #34d399);
+  color: white;
+  font-size: 0.65rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 600;
 }
 
-.status-text.online { color: var(--success-color); }
-.status-text.offline { color: var(--danger-color); }
-.status-text.checking { color: var(--warning-color); }
-.status-text.disabled { color: #64748b; }
-
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
+/* Details */
+.config-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
 }
 
-/* Switch Styles */
-.switch-sm {
-  position: relative;
-  display: inline-block;
-  width: 32px;
-  height: 18px;
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.switch-sm input { 
-  opacity: 0;
-  width: 0;
-  height: 0;
+.detail-icon {
+  font-size: 0.9rem;
+  width: 24px;
+  text-align: center;
 }
 
-.slider-sm {
-  position: absolute;
+.detail-value {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+/* Footer */
+.config-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Toggle Wrapper */
+.toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.1);
-  transition: .4s;
-  border-radius: 18px;
-  border: 1px solid var(--glass-border);
 }
 
-.slider-sm:before {
+.toggle-wrapper input {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.toggle-slider::before {
+  content: '';
   position: absolute;
-  content: "";
-  height: 12px;
-  width: 12px;
+  width: 16px;
+  height: 16px;
   left: 2px;
-  bottom: 2px;
-  background-color: white;
-  transition: .4s;
+  top: 2px;
+  background: white;
   border-radius: 50%;
+  transition: transform 0.3s ease;
 }
 
-input:checked + .slider-sm {
-  background-color: var(--success-color);
+.toggle-wrapper input:checked + .toggle-slider {
+  background: var(--success-color);
+  border-color: var(--success-color);
 }
 
-input:checked + .slider-sm:before {
-  transform: translateX(14px);
+.toggle-wrapper input:checked + .toggle-slider::before {
+  transform: translateX(18px);
 }
 
+.toggle-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Action Buttons */
+.config-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.btn-icon.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* Modal Toggle Switch */
 .switch {
   position: relative;
   display: inline-block;
@@ -503,22 +700,6 @@ input:checked + .slider:before {
 
 .mb-0 { margin-bottom: 0 !important; }
 
-.config-details {
-  margin-bottom: var(--spacing-md);
-  font-size: 0.9rem;
-}
-
-.config-details p {
-  margin: 0 0 var(--spacing-xs);
-  color: var(--text-muted);
-}
-
-.config-actions {
-  display: flex;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
-}
-
 .form-grid {
   display: flex;
   gap: 1rem;
@@ -528,7 +709,15 @@ input:checked + .slider:before {
   grid-column: 1 / -1;
   text-align: center;
   padding: 4rem 2rem;
+  color: var(--text-muted);
 }
 
-.modal-footer { display: flex; gap: var(--spacing-sm); justify-content: flex-end; padding-top: var(--spacing-md); border-top: 1px solid var(--glass-border); margin-top: var(--spacing-md); }
+.modal-footer { 
+  display: flex; 
+  gap: var(--spacing-sm); 
+  justify-content: flex-end; 
+  padding-top: var(--spacing-md); 
+  border-top: 1px solid var(--glass-border); 
+  margin-top: var(--spacing-md); 
+}
 </style>
