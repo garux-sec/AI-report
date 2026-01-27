@@ -348,16 +348,6 @@ onMounted(() => {
         <div class="section-header">
           <h2 class="section-title">📝 Pentest Notes</h2>
           <div class="section-actions">
-            <input 
-              ref="imageFileInput" 
-              type="file" 
-              accept="image/*" 
-              @change="handleImageUpload" 
-              style="display: none" 
-            />
-            <button class="btn btn-sm btn-secondary" @click="triggerImageUpload" :disabled="isUploading">
-              {{ isUploading ? '⏳ Uploading...' : '📷 Add Image' }}
-            </button>
             <span v-if="isSaving" class="saving-indicator">💾 Saving...</span>
           </div>
         </div>
