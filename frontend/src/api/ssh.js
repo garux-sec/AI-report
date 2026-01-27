@@ -1,6 +1,7 @@
 import api from './index'
 
 export const sshApi = {
+    getAll: () => api.get('/ssh-config'),
     getConfigs: () => api.get('/ssh-config'),
     createConfig: (data) => api.post('/ssh-config', data),
     updateConfig: (id, data) => api.put(`/ssh-config/${id}`, data),
