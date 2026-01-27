@@ -15,6 +15,7 @@ const frameworkController = require('../controllers/frameworkController');
 const kpiController = require('../controllers/kpiController');
 const userController = require('../controllers/userController');
 const aiConfigController = require('../controllers/aiConfigController');
+const sshController = require('../controllers/sshController');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -79,6 +80,14 @@ router.put('/ai-config/:id', authMiddleware, aiConfigController.updateConfig);
 router.delete('/ai-config/:id', authMiddleware, aiConfigController.deleteConfig);
 router.post('/ai-config/:id/default', authMiddleware, aiConfigController.setDefault);
 router.post('/ai-config/fetch-models', authMiddleware, aiConfigController.fetchModels);
+
+// SSH Config Routes
+router.get('/ssh-config', authMiddleware, sshController.getConfigs);
+router.post('/ssh-config', authMiddleware, sshController.createConfig);
+router.put('/ssh-config/:id', authMiddleware, sshController.updateConfig);
+router.delete('/ssh-config/:id', authMiddleware, sshController.deleteConfig);
+router.post('/ssh-config/test', authMiddleware, sshController.testConnection);
+router.post('/ssh-config/:id/default', authMiddleware, sshController.setDefault);
 
 // Multer for Project Assets
 const storage = multer.diskStorage({

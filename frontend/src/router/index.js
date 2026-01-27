@@ -55,6 +55,12 @@ const routes = [
         meta: { requiresAuth: true }
     },
     {
+        path: '/settings/ssh-config',
+        name: 'SSHSettings',
+        component: () => import('../views/settings/SSHSettingsView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/settings/kpi',
         name: 'KpiSettings',
         component: () => import('../views/settings/KpiView.vue'),
