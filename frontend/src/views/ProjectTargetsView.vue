@@ -432,26 +432,33 @@ onMounted(() => {
 }
 
 .btn-icon {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
+  margin: 0;
   font-size: 1.1rem;
-  border-radius: 6px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.btn-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .star-btn {
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
-  font-size: 1.2rem;
-  transition: all 0.2s;
+  /* Inherits from .btn-icon */
 }
 
 .star-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
   color: #fbbf24;
 }
 
@@ -459,6 +466,9 @@ onMounted(() => {
   color: #fbbf24;
   text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
 }
+
+.btn-success-icon:hover { color: #4ade80; background: rgba(74, 222, 128, 0.1); }
+.btn-danger-icon:hover { color: #f87171; background: rgba(239, 68, 68, 0.1); }
 
 .targets-count {
   margin-top: var(--spacing-md);
