@@ -55,6 +55,12 @@ const routes = [
         meta: { requiresAuth: true }
     },
     {
+        path: '/settings/burp',
+        name: 'BurpSettings',
+        component: () => import('../views/settings/BurpSettingsView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/settings/ssh-config',
         name: 'SSHSettings',
         component: () => import('../views/settings/SSHSettingsView.vue'),

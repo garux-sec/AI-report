@@ -16,6 +16,7 @@ const kpiController = require('../controllers/kpiController');
 const userController = require('../controllers/userController');
 const aiConfigController = require('../controllers/aiConfigController');
 const sshController = require('../controllers/sshController');
+const burpConfigController = require('../controllers/burpConfigController');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -88,6 +89,13 @@ router.put('/ssh-config/:id', authMiddleware, sshController.updateConfig);
 router.delete('/ssh-config/:id', authMiddleware, sshController.deleteConfig);
 router.post('/ssh-config/test', authMiddleware, sshController.testConnection);
 router.post('/ssh-config/:id/default', authMiddleware, sshController.setDefault);
+
+// Burp MCP Config Routes
+router.get('/burp-config', authMiddleware, burpConfigController.getConfigs);
+router.post('/burp-config', authMiddleware, burpConfigController.createConfig);
+router.put('/burp-config/:id', authMiddleware, burpConfigController.updateConfig);
+router.delete('/burp-config/:id', authMiddleware, burpConfigController.deleteConfig);
+router.post('/burp-config/:id/default', authMiddleware, burpConfigController.setDefault);
 
 // Multer for Project Assets
 const storage = multer.diskStorage({

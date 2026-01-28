@@ -1,0 +1,18 @@
+import api from './index'
+
+export const burpApi = {
+    getConfigs: () =>
+        api.get('/burp-config'),
+
+    createConfig: (data) =>
+        api.post('/burp-config', data),
+
+    updateConfig: (id, data) =>
+        api.put(`/burp-config/${id}`, data),
+
+    deleteConfig: (id) =>
+        api.delete(`/burp-config/${id}`),
+
+    setDefault: (id) =>
+        api.post(`/burp-config/${id}/default`)
+}
