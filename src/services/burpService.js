@@ -3,12 +3,12 @@ const EventEmitter = require('events');
 
 class BurpService {
     constructor() {
-        this.sessions = new Map(); // Map of baseUrl -> sessionUrl
+        this.sessions = new Map(); // Map of baseUrl -> { sessionUrl, stream, requestMap }
         this.pendingHandshakes = new Map(); // Map of baseUrl -> Promise
     }
 
     /**
-     * Internal method to perform a handshake.
+     * Internal method to perform a handshake and start listening for messages.
      */
     async _performHandshake(baseUrl, apiKey) {
         return new Promise((resolve, reject) => {
@@ -30,11 +30,15 @@ class BurpService {
                 let resolved = false;
                 let lineBuffer = '';
                 let currentEvent = null;
-                let currentData = null;
+                const requestMap = new Map(); // Map of jsonrpc id -> { resolve, reject, timeout }
+
+                const sessionState = {
+                    sessionUrl: null,
+                    stream: response.data,
+                    requestMap: requestMap
+                };
 
                 response.data.on('data', chunk => {
-                    if (resolved) return;
-
                     lineBuffer += chunk.toString();
                     const lines = lineBuffer.split(/\r?\n/);
                     lineBuffer = lines.pop();
@@ -43,33 +47,32 @@ class BurpService {
                         const trimmedLine = line.trim();
                         if (trimmedLine === '') {
                             currentEvent = null;
-                            currentData = null;
                         } else if (trimmedLine.startsWith('event:')) {
                             currentEvent = trimmedLine.slice(6).trim();
                         } else if (trimmedLine.startsWith('data:')) {
-                            currentData = trimmedLine.slice(5).trim();
-                        }
+                            const dataStr = trimmedLine.slice(5).trim();
 
-                        if (currentEvent === 'endpoint' && currentData) {
-                            const sessionUrl = `${baseUrl.replace(/\/$/, '')}${currentData}`;
-                            console.log(`[BurpService] Handshake successful. Endpoint: ${sessionUrl}`);
-
-                            resolved = true;
-                            this.sessions.set(baseUrl, sessionUrl);
-
-                            // Keep the stream alive as long as possible or let axios manage it?
-                            // For MCP-SSE, the stream MUST stay alive to keep the session active.
-                            // If we destroy it, the session might be closed by the server.
-                            // However, we need a way to track if the stream dies.
-                            response.data.on('close', () => {
-                                console.log(`[BurpService] SSE Stream closed for ${baseUrl}`);
-                                if (this.sessions.get(baseUrl) === sessionUrl) {
-                                    this.sessions.delete(baseUrl);
+                            if (currentEvent === 'endpoint') {
+                                sessionState.sessionUrl = `${baseUrl.replace(/\/$/, '')}${dataStr}`;
+                                console.log(`[BurpService] Handshake successful. Endpoint: ${sessionState.sessionUrl}`);
+                                this.sessions.set(baseUrl, sessionState);
+                                if (!resolved) {
+                                    resolved = true;
+                                    resolve(sessionState.sessionUrl);
                                 }
-                            });
-
-                            resolve(sessionUrl);
-                            return;
+                            } else if (currentEvent === 'message') {
+                                try {
+                                    const message = JSON.parse(dataStr);
+                                    if (message.id && requestMap.has(message.id)) {
+                                        const { resolve: res, timeout } = requestMap.get(message.id);
+                                        clearTimeout(timeout);
+                                        requestMap.delete(message.id);
+                                        res(message);
+                                    }
+                                } catch (e) {
+                                    console.error('[BurpService] Failed to parse message data:', e.message);
+                                }
+                            }
                         }
                     }
                 });
@@ -77,6 +80,12 @@ class BurpService {
                 response.data.on('error', err => {
                     console.error('[BurpService] SSE Stream Error:', err);
                     if (!resolved) reject(err);
+                    this.sessions.delete(baseUrl);
+                });
+
+                response.data.on('close', () => {
+                    console.log(`[BurpService] SSE Stream closed for ${baseUrl}`);
+                    this.sessions.delete(baseUrl);
                 });
 
                 setTimeout(() => {
@@ -93,12 +102,9 @@ class BurpService {
         });
     }
 
-    /**
-     * Gets or creates a session endpoint for a baseUrl.
-     */
     async getSessionEndpoint(baseUrl, apiKey, forceRefresh = false) {
         if (!forceRefresh && this.sessions.has(baseUrl)) {
-            return this.sessions.get(baseUrl);
+            return this.sessions.get(baseUrl).sessionUrl;
         }
 
         if (this.pendingHandshakes.has(baseUrl)) {
@@ -114,78 +120,91 @@ class BurpService {
     }
 
     /**
-     * Calls a specific tool, retrying once if the session is stale.
+     * Sends a request and waits for the response on the SSE stream.
      */
-    async callTool(baseUrl, apiKey, toolName, args = {}) {
-        let endpointUrl = await this.getSessionEndpoint(baseUrl, apiKey);
+    async _sendRequest(baseUrl, apiKey, method, params = {}) {
+        const sessionUrl = await this.getSessionEndpoint(baseUrl, apiKey);
+        const sessionState = this.sessions.get(baseUrl);
 
-        try {
-            return await this._executeCall(endpointUrl, toolName, args);
-        } catch (error) {
-            // If the error looks like a session issue (e.g., 404 on the message endpoint)
-            // or connection refused, try one refresh.
-            if (error.response?.status === 404 || !error.response) {
-                console.log(`[BurpService] Potential stale session, retrying once with new handshake...`);
-                endpointUrl = await this.getSessionEndpoint(baseUrl, apiKey, true);
-                return await this._executeCall(endpointUrl, toolName, args);
-            }
-            throw error;
-        }
+        if (!sessionState) throw new Error('Session state lost');
+
+        const requestId = Date.now() + Math.floor(Math.random() * 1000);
+
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                sessionState.requestMap.delete(requestId);
+                reject(new Error(`Request ${method} (id: ${requestId}) timed out`));
+            }, 30000);
+
+            sessionState.requestMap.set(requestId, { resolve, reject, timeout });
+
+            axios.post(sessionUrl, {
+                jsonrpc: "2.0",
+                id: requestId,
+                method: method,
+                params: params
+            }, {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 5000
+            }).then(response => {
+                if (response.data !== 'Accepted' && response.data.result) {
+                    // If the server actually returned the result in the POST response
+                    clearTimeout(timeout);
+                    sessionState.requestMap.delete(requestId);
+                    resolve(response.data);
+                }
+                // Otherwise wait for the SSE message
+            }).catch(err => {
+                clearTimeout(timeout);
+                sessionState.requestMap.delete(requestId);
+                reject(err);
+            });
+        });
     }
 
-    async _executeCall(endpointUrl, toolName, args) {
-        console.log(`[BurpService] Calling tool '${toolName}' at ${endpointUrl}`);
-        const response = await axios.post(endpointUrl, {
-            jsonrpc: "2.0",
-            id: Date.now(),
-            method: "tools/call",
-            params: {
+    async callTool(baseUrl, apiKey, toolName, args = {}) {
+        try {
+            const response = await this._sendRequest(baseUrl, apiKey, "tools/call", {
                 name: toolName,
                 arguments: args
-            }
-        }, {
-            headers: { 'Content-Type': 'application/json' },
-            timeout: 30000
-        });
-        return response.data;
-    }
-
-    /**
-     * Lists available tools on the MCP server.
-     */
-    async listTools(baseUrl, apiKey) {
-        let endpointUrl = await this.getSessionEndpoint(baseUrl, apiKey);
-
-        try {
-            return await this._executeList(endpointUrl);
+            });
+            return response;
         } catch (error) {
-            if (error.response?.status === 404 || !error.response) {
-                endpointUrl = await this.getSessionEndpoint(baseUrl, apiKey, true);
-                return await this._executeList(endpointUrl);
+            if (error.response?.status === 404 || error.message.includes('timed out')) {
+                console.log(`[BurpService] Retry callTool due to: ${error.message}`);
+                await this.getSessionEndpoint(baseUrl, apiKey, true);
+                return await this._sendRequest(baseUrl, apiKey, "tools/call", {
+                    name: toolName,
+                    arguments: args
+                });
             }
             throw error;
         }
     }
 
-    async _executeList(endpointUrl) {
-        console.log(`[BurpService] Listing tools at ${endpointUrl}`);
-        const response = await axios.post(endpointUrl, {
-            jsonrpc: "2.0",
-            id: Date.now(),
-            method: "tools/list",
-            params: {}
-        }, { timeout: 10000 });
+    async listTools(baseUrl, apiKey) {
+        try {
+            const response = await this._sendRequest(baseUrl, apiKey, "tools/list");
 
-        let tools = [];
-        if (response.data.result) {
-            if (Array.isArray(response.data.result.tools)) {
-                tools = response.data.result.tools;
-            } else if (Array.isArray(response.data.result)) {
-                tools = response.data.result;
+            let tools = [];
+            if (response.result) {
+                if (Array.isArray(response.result.tools)) {
+                    tools = response.result.tools;
+                } else if (Array.isArray(response.result)) {
+                    tools = response.result;
+                }
             }
+            console.log(`[BurpService] Found ${tools.length} tools`);
+            return tools;
+        } catch (error) {
+            if (error.response?.status === 404 || error.message.includes('timed out')) {
+                console.log(`[BurpService] Retry listTools due to: ${error.message}`);
+                await this.getSessionEndpoint(baseUrl, apiKey, true);
+                const response = await this._sendRequest(baseUrl, apiKey, "tools/list");
+                return response.result?.tools || response.result || [];
+            }
+            throw error;
         }
-        console.log(`[BurpService] Found ${tools.length} tools`);
-        return tools;
     }
 }
 
