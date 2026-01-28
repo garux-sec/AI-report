@@ -42,15 +42,37 @@ const loadProject = async () => {
 
 const filteredTargets = computed(() => {
   if (!project.value?.targets) return []
-  if (!targetSearchTerm.value) return project.value.targets
-  const term = targetSearchTerm.value.toLowerCase()
-  return project.value.targets.filter(t =>
-    t.name?.toLowerCase().includes(term) ||
-    t.url?.toLowerCase().includes(term) ||
-    t.bu?.toLowerCase().includes(term) ||
-    t.it?.toLowerCase().includes(term)
-  )
+  let targets = [...project.value.targets]
+  
+  if (targetSearchTerm.value) {
+    const term = targetSearchTerm.value.toLowerCase()
+    targets = targets.filter(t =>
+      t.name?.toLowerCase().includes(term) ||
+      t.url?.toLowerCase().includes(term) ||
+      t.bu?.toLowerCase().includes(term) ||
+      t.it?.toLowerCase().includes(term)
+    )
+  }
+
+  // Sort: Starred first, then by name
+  return targets.sort((a, b) => {
+    if (a.isStarred && !b.isStarred) return -1
+    if (!a.isStarred && b.isStarred) return 1
+    return (a.name || '').localeCompare(b.name || '')
+  })
 })
+
+const toggleStar = async (target) => {
+  try {
+    await projectsApi.toggleTargetStar(projectId.value, target._id)
+    target.isStarred = !target.isStarred
+    // We don't necessarily need to reload everything, just update the local state
+    // but loadProject() ensures consistency with backend
+    await loadProject()
+  } catch (error) {
+    toast.error('Failed to toggle star')
+  }
+}
 
 const openTargetModal = (target = null) => {
   if (target) {
@@ -223,6 +245,14 @@ onMounted(() => {
                   <td class="remarks-cell">{{ target.remarks || '-' }}</td>
                   <td>
                     <div class="actions-cell">
+                      <button 
+                        class="btn btn-sm btn-icon star-btn" 
+                        :class="{ starred: target.isStarred }"
+                        @click="toggleStar(target)"
+                        :title="target.isStarred ? 'Unstar' : 'Star'"
+                      >
+                        {{ target.isStarred ? '⭐' : '☆' }}
+                      </button>
                       <router-link :to="`/project/${projectId}/target/${target._id}`" class="btn btn-sm btn-icon btn-success-icon" title="Notes & Commands">📝</router-link>
                       <button class="btn btn-sm btn-icon" @click="openTargetModal(target)" title="Edit">✏️</button>
                       <button class="btn btn-sm btn-icon btn-danger-icon" @click="deleteTarget(target._id)" title="Delete">🗑️</button>
@@ -397,7 +427,37 @@ onMounted(() => {
 
 .actions-cell {
   display: flex;
-  gap: 4px;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1.1rem;
+  border-radius: 6px;
+}
+
+.star-btn {
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  transition: all 0.2s;
+}
+
+.star-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fbbf24;
+}
+
+.star-btn.starred {
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
 }
 
 .targets-count {

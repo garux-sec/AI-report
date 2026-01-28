@@ -30,6 +30,7 @@ const ProjectSchema = new mongoose.Schema({
         bu: { type: String },
         it: { type: String },
         remarks: { type: String },
+        isStarred: { type: Boolean, default: false },
         notes: { type: String, default: '' },
         commandResults: [{
             command: { type: String, required: true },

@@ -57,5 +57,8 @@ export const projectsApi = {
         }),
 
     deleteTargetImage: (projectId, targetId, imageId) =>
-        api.delete(`/projects/${projectId}/targets/${targetId}/images/${imageId}`)
+        api.delete(`/projects/${projectId}/targets/${targetId}/images/${imageId}`),
+
+    toggleTargetStar: (projectId, targetId) =>
+        api.put(`/projects/${projectId}/targets/${targetId}/star`)
 }

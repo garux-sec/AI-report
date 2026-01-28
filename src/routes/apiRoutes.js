@@ -118,6 +118,7 @@ router.delete('/projects/:id/targets/:targetId', authMiddleware, projectControll
 router.post('/projects/:id/targets/import', authMiddleware, projectController.importTargetsCSV);
 router.put('/projects/:id/targets/:targetId/notes', authMiddleware, projectController.updateTargetNotes);
 router.post('/projects/:id/targets/:targetId/command', authMiddleware, projectController.saveCommandResult);
+router.put('/projects/:id/targets/:targetId/star', authMiddleware, projectController.toggleTargetStar);
 
 // Multer for Target Images
 const targetImageStorage = multer.diskStorage({

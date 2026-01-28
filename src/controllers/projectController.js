@@ -289,3 +289,22 @@ exports.deleteTargetImage = async (req, res) => {
         res.status(500).json({ message: 'Error deleting image', error: error.message });
     }
 };
+
+// Toggle target star status
+exports.toggleTargetStar = async (req, res) => {
+    try {
+        const project = await Project.findById(req.params.id);
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+
+        const target = project.targets.id(req.params.targetId);
+        if (!target) return res.status(404).json({ message: 'Target not found' });
+
+        target.isStarred = !target.isStarred;
+        await project.save();
+
+        res.json({ message: `Target ${target.isStarred ? 'starred' : 'unstarred'}`, target });
+    } catch (error) {
+        console.error('Toggle Star Error:', error);
+        res.status(500).json({ message: 'Error toggling star', error: error.message });
+    }
+};
