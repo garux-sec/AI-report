@@ -20,7 +20,7 @@ exports.createConfig = async (req, res) => {
 
         const config = new AIConfig({
             provider,
-            name: name || provider,
+            name: name || `${provider}-${Date.now()}`,
             apiKey,
             baseUrl,
             modelName,
@@ -31,9 +31,6 @@ exports.createConfig = async (req, res) => {
         await config.save();
         res.status(201).json(config);
     } catch (error) {
-        if (error.code === 11000) {
-            return res.status(400).json({ message: 'Provider configuration already exists' });
-        }
         res.status(500).json({ message: 'Error creating AI config', error: error.message });
     }
 };
