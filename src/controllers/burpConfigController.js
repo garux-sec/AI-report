@@ -76,11 +76,9 @@ exports.testConnection = async (req, res) => {
     try {
         const { url, apiKey } = req.body;
 
-        // Full MCP Handshake
-        const endpoint = await burpService.getSessionEndpoint(url, apiKey);
-
-        // Optional: Call tools/list to verify full protocol functionality
-        const tools = await burpService.listTools(endpoint);
+        // Verify full protocol functionality by listing tools
+        // listTools will handle getSessionEndpoint internally
+        const tools = await burpService.listTools(url, apiKey);
 
         res.json({ online: true, toolsCount: tools.length });
     } catch (error) {
@@ -94,8 +92,7 @@ exports.listTools = async (req, res) => {
         const config = await BurpConfig.findById(req.params.id);
         if (!config) return res.status(404).json({ message: 'Config not found' });
 
-        const endpoint = await burpService.getSessionEndpoint(config.url, config.apiKey);
-        const tools = await burpService.listTools(endpoint);
+        const tools = await burpService.listTools(config.url, config.apiKey);
 
         res.json(tools);
     } catch (error) {
