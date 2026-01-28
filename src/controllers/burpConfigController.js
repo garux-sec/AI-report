@@ -1,7 +1,8 @@
 const BurpConfig = require('../models/BurpConfig');
-const axios = require('axios');
+const burpService = require('../services/burpService');
 
 exports.getConfigs = async (req, res) => {
+    // ... existing getConfigs ...
     try {
         const configs = await BurpConfig.find();
         res.json(configs);
@@ -75,19 +76,29 @@ exports.testConnection = async (req, res) => {
     try {
         const { url, apiKey } = req.body;
 
-        // Use stream responseType to resolve as soon as headers are received
-        // This is necessary for SSE (Server-Sent Events) which never end
-        const response = await axios.get(url, {
-            headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {},
-            timeout: 5000,
-            responseType: 'stream'
-        });
+        // Full MCP Handshake
+        const endpoint = await burpService.getSessionEndpoint(url, apiKey);
 
-        res.json({ online: true });
+        // Optional: Call tools/list to verify full protocol functionality
+        const tools = await burpService.listTools(endpoint);
 
-        // Close connection immediately
-        response.data.destroy();
+        res.json({ online: true, toolsCount: tools.length });
     } catch (error) {
+        console.error('[BurpConfigController] Test Connection Failed:', error);
         res.json({ online: false, message: error.message });
+    }
+};
+
+exports.listTools = async (req, res) => {
+    try {
+        const config = await BurpConfig.findById(req.params.id);
+        if (!config) return res.status(404).json({ message: 'Config not found' });
+
+        const endpoint = await burpService.getSessionEndpoint(config.url, config.apiKey);
+        const tools = await burpService.listTools(endpoint);
+
+        res.json(tools);
+    } catch (error) {
+        res.status(500).json({ message: 'Error listing tools', error: error.message });
     }
 };

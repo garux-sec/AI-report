@@ -15,12 +15,28 @@ const isLoading = ref(true)
 const showModal = ref(false)
 const editingConfig = ref(null)
 const statuses = ref({}) // Store online status { id: { online, checking } }
+const availableTools = ref({}) // Store tools per config { id: [tools] }
+const isFetchingTools = ref({}) // Loading state per config
+
+const loadTools = async (id) => {
+  isFetchingTools.value[id] = true
+  try {
+    availableTools.value[id] = await burpApi.listTools(id)
+  } catch (error) {
+    console.error('Failed to load tools:', error)
+  } finally {
+    isFetchingTools.value[id] = false
+  }
+}
 
 const checkStatus = async (config) => {
   statuses.value[config._id] = { online: false, checking: true }
   try {
     const result = await burpApi.testConnection({ url: config.url, apiKey: config.apiKey })
     statuses.value[config._id] = { online: result.online, checking: false }
+    if (result.online && result.toolsCount > 0) {
+      loadTools(config._id)
+    }
   } catch (error) {
     statuses.value[config._id] = { online: false, checking: false }
   }
@@ -163,9 +179,36 @@ onMounted(() => {
                 <span v-if="config.isDefault" class="badge-default">Default</span>
               </div>
               <div class="config-details">
-                <p><strong>Status:</strong> <span :class="config.isEnabled ? 'text-success' : 'text-danger'">{{ config.isEnabled ? 'Active' : 'Disabled' }}</span></p>
+                <p><strong>Status:</strong> <span :class="statuses[config._id]?.online ? 'text-success' : 'text-danger'">{{ statuses[config._id]?.online ? 'Online' : 'Offline' }}</span></p>
                 <p><strong>Auth:</strong> {{ config.apiKey ? 'API Key Set' : 'None' }}</p>
               </div>
+
+              <!-- Available Tools Section -->
+              <div v-if="statuses[config._id]?.online" class="tools-section">
+                <div class="tools-header">
+                  <h5>🛠️ Available Tools</h5>
+                  <button 
+                    class="btn btn-text btn-xs" 
+                    @click="loadTools(config._id)"
+                    :disabled="isFetchingTools[config._id]"
+                  >
+                    {{ isFetchingTools[config._id] ? '⌛' : '🔄' }}
+                  </button>
+                </div>
+                <div v-if="isFetchingTools[config._id]" class="tools-loading">Fetching tools...</div>
+                <div v-else-if="availableTools[config._id]?.length" class="tools-list">
+                  <span 
+                    v-for="tool in availableTools[config._id]" 
+                    :key="tool.name" 
+                    class="tool-tag"
+                    :title="tool.description"
+                  >
+                    {{ tool.name }}
+                  </span>
+                </div>
+                <div v-else class="tools-empty">No tools reported by server</div>
+              </div>
+
               <div class="config-actions">
                 <button 
                   v-if="!config.isDefault"
@@ -381,8 +424,54 @@ onMounted(() => {
 }
 
 .mt-md { margin-top: var(--spacing-md); }
-.text-success { color: #4ade80; }
 .text-danger { color: #f87171; }
+
+.tools-section {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px dotted var(--glass-border);
+}
+
+.tools-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.tools-header h5 {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.tools-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tool-tag {
+  font-size: 0.75rem;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.tools-loading, .tools-empty {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+.btn-xs {
+  font-size: 0.7rem;
+  padding: 2px 4px;
+}
 
 .modal-footer { display: flex; gap: var(--spacing-sm); justify-content: flex-end; padding-top: var(--spacing-md); border-top: 1px solid var(--glass-border); margin-top: var(--spacing-md); }
 </style>
