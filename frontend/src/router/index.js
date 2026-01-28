@@ -71,6 +71,12 @@ const routes = [
         name: 'TargetNotes',
         component: () => import('../views/TargetNotesView.vue'),
         meta: { requiresAuth: true }
+    },
+    {
+        path: '/project/:id/targets',
+        name: 'ProjectTargets',
+        component: () => import('../views/ProjectTargetsView.vue'),
+        meta: { requiresAuth: true }
     }
 ]
 

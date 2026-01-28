@@ -8,15 +8,43 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const settingsExpanded = ref(true)
+const projectContext = ref(null)
 
 const toggleSettings = () => {
   settingsExpanded.value = !settingsExpanded.value
 }
 
+// Check for project context
+import { projectsApi } from '../../api/projects'
+import { watchEffect } from 'vue'
+
+watchEffect(async () => {
+  const projectId = route.params.id || route.params.projectId
+  if (projectId) {
+    try {
+      const project = await projectsApi.getById(projectId)
+      projectContext.value = project
+    } catch (e) {
+      console.error('Failed to load project context')
+    }
+  } else {
+    projectContext.value = null
+  }
+})
+
 const navItems = [
   { path: '/dashboard', icon: '📊', label: 'Dashboard' },
   { path: '/projects', icon: '📁', label: 'Projects' }
 ]
+
+const projectItems = computed(() => {
+  if (!projectContext.value) return []
+  const pid = projectContext.value._id
+  return [
+    { path: `/project/${pid}`, icon: '📄', label: 'Reports' },
+    { path: `/project/${pid}/targets`, icon: '🎯', label: 'Targets' }
+  ]
+})
 
 const settingsItems = [
   { path: '/settings/users', icon: '👥', label: 'Users' },
@@ -26,7 +54,7 @@ const settingsItems = [
   { path: '/settings/kpi', icon: '📈', label: 'KPI Settings' }
 ]
 
-const isActive = (path) => route.path === path
+const isActive = (path) => route.path === path || (path !== '/dashboard' && route.path.startsWith(path))
 
 const logout = () => {
   authStore.logout()
@@ -47,11 +75,28 @@ const logout = () => {
         :key="item.path"
         :to="item.path"
         class="nav-link"
-        :class="{ active: isActive(item.path) }"
+        :class="{ active: isActive(item.path) && !projectContext }"
       >
         <span class="nav-icon">{{ item.icon }}</span>
         <span class="nav-label">{{ item.label }}</span>
       </router-link>
+
+      <!-- Project Context Menu -->
+      <div v-if="projectContext" class="nav-group project-group">
+        <div class="nav-link-header project-header">
+          <span class="nav-label">{{ projectContext.name }}</span>
+        </div>
+        <router-link
+          v-for="item in projectItems"
+          :key="item.path"
+          :to="item.path"
+          class="nav-sub-link"
+          :class="{ active: route.path === item.path }"
+        >
+          <span class="nav-icon">{{ item.icon }}</span>
+          <span class="nav-label">{{ item.label }}</span>
+        </router-link>
+      </div>
 
       <!-- Settings Group -->
       <div class="nav-group">
