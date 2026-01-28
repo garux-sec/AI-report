@@ -2,17 +2,20 @@ const axios = require('axios');
 const EventEmitter = require('events');
 
 class BurpService {
+    constructor() {
+        this.sessions = new Map(); // Map of baseUrl -> sessionUrl
+        this.pendingHandshakes = new Map(); // Map of baseUrl -> Promise
+    }
+
     /**
-     * Performs a handshake with the Burp MCP server via SSE.
-     * Starts an SSE connection, waits for the 'endpoint' event to get the session URL,
-     * and then returns that URL for further POST requests.
+     * Internal method to perform a handshake.
      */
-    async getSessionEndpoint(baseUrl, apiKey) {
+    async _performHandshake(baseUrl, apiKey) {
         return new Promise((resolve, reject) => {
             const sseUrl = `${baseUrl.replace(/\/$/, '')}/sse`;
             const headers = apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {};
 
-            console.log(`[BurpService] Starting handshake at ${sseUrl}`);
+            console.log(`[BurpService] Starting new handshake at ${sseUrl}`);
 
             axios({
                 method: 'get',
@@ -22,23 +25,23 @@ class BurpService {
                     'Accept': 'text/event-stream'
                 },
                 responseType: 'stream',
-                timeout: 20000
+                timeout: 30000
             }).then(response => {
-                let sessionUrl = null;
-
+                let resolved = false;
                 let lineBuffer = '';
                 let currentEvent = null;
                 let currentData = null;
 
                 response.data.on('data', chunk => {
+                    if (resolved) return;
+
                     lineBuffer += chunk.toString();
                     const lines = lineBuffer.split(/\r?\n/);
-                    lineBuffer = lines.pop(); // Keep partial line in buffer
+                    lineBuffer = lines.pop();
 
                     for (const line of lines) {
                         const trimmedLine = line.trim();
                         if (trimmedLine === '') {
-                            // Message boundary - reset for next message if not resolved
                             currentEvent = null;
                             currentData = null;
                         } else if (trimmedLine.startsWith('event:')) {
@@ -47,12 +50,24 @@ class BurpService {
                             currentData = trimmedLine.slice(5).trim();
                         }
 
-                        // Check if we have both event and data for the handshake
                         if (currentEvent === 'endpoint' && currentData) {
-                            sessionUrl = `${baseUrl.replace(/\/$/, '')}${currentData}`;
+                            const sessionUrl = `${baseUrl.replace(/\/$/, '')}${currentData}`;
                             console.log(`[BurpService] Handshake successful. Endpoint: ${sessionUrl}`);
 
-                            response.data.destroy();
+                            resolved = true;
+                            this.sessions.set(baseUrl, sessionUrl);
+
+                            // Keep the stream alive as long as possible or let axios manage it?
+                            // For MCP-SSE, the stream MUST stay alive to keep the session active.
+                            // If we destroy it, the session might be closed by the server.
+                            // However, we need a way to track if the stream dies.
+                            response.data.on('close', () => {
+                                console.log(`[BurpService] SSE Stream closed for ${baseUrl}`);
+                                if (this.sessions.get(baseUrl) === sessionUrl) {
+                                    this.sessions.delete(baseUrl);
+                                }
+                            });
+
                             resolve(sessionUrl);
                             return;
                         }
@@ -61,16 +76,15 @@ class BurpService {
 
                 response.data.on('error', err => {
                     console.error('[BurpService] SSE Stream Error:', err);
-                    reject(err);
+                    if (!resolved) reject(err);
                 });
 
-                // Set a safety timeout for the event
                 setTimeout(() => {
-                    if (!sessionUrl) {
+                    if (!resolved) {
                         response.data.destroy();
                         reject(new Error('Handshake timed out waiting for endpoint event'));
                     }
-                }, 15000);
+                }, 20000);
 
             }).catch(err => {
                 console.error('[BurpService] SSE Connection Failed:', err.message);
@@ -80,65 +94,98 @@ class BurpService {
     }
 
     /**
-     * Calls a specific tool using the MCP JSON-RPC 2.0 protocol.
+     * Gets or creates a session endpoint for a baseUrl.
      */
-    async callTool(endpointUrl, toolName, args = {}) {
+    async getSessionEndpoint(baseUrl, apiKey, forceRefresh = false) {
+        if (!forceRefresh && this.sessions.has(baseUrl)) {
+            return this.sessions.get(baseUrl);
+        }
+
+        if (this.pendingHandshakes.has(baseUrl)) {
+            return this.pendingHandshakes.get(baseUrl);
+        }
+
+        const handshakePromise = this._performHandshake(baseUrl, apiKey).finally(() => {
+            this.pendingHandshakes.delete(baseUrl);
+        });
+
+        this.pendingHandshakes.set(baseUrl, handshakePromise);
+        return handshakePromise;
+    }
+
+    /**
+     * Calls a specific tool, retrying once if the session is stale.
+     */
+    async callTool(baseUrl, apiKey, toolName, args = {}) {
+        let endpointUrl = await this.getSessionEndpoint(baseUrl, apiKey);
+
         try {
-            console.log(`[BurpService] Calling tool '${toolName}' at ${endpointUrl}`);
-
-            const response = await axios.post(endpointUrl, {
-                jsonrpc: "2.0",
-                id: Date.now(),
-                method: "tools/call",
-                params: {
-                    name: toolName,
-                    arguments: args
-                }
-            }, {
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            return response.data;
+            return await this._executeCall(endpointUrl, toolName, args);
         } catch (error) {
-            console.error(`[BurpService] Tool Call Error (${toolName}):`, error.response?.data || error.message);
+            // If the error looks like a session issue (e.g., 404 on the message endpoint)
+            // or connection refused, try one refresh.
+            if (error.response?.status === 404 || !error.response) {
+                console.log(`[BurpService] Potential stale session, retrying once with new handshake...`);
+                endpointUrl = await this.getSessionEndpoint(baseUrl, apiKey, true);
+                return await this._executeCall(endpointUrl, toolName, args);
+            }
             throw error;
         }
+    }
+
+    async _executeCall(endpointUrl, toolName, args) {
+        console.log(`[BurpService] Calling tool '${toolName}' at ${endpointUrl}`);
+        const response = await axios.post(endpointUrl, {
+            jsonrpc: "2.0",
+            id: Date.now(),
+            method: "tools/call",
+            params: {
+                name: toolName,
+                arguments: args
+            }
+        }, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 30000
+        });
+        return response.data;
     }
 
     /**
      * Lists available tools on the MCP server.
      */
-    async listTools(endpointUrl) {
+    async listTools(baseUrl, apiKey) {
+        let endpointUrl = await this.getSessionEndpoint(baseUrl, apiKey);
+
         try {
-            console.log(`[BurpService] Listing tools at ${endpointUrl}`);
-            const response = await axios.post(endpointUrl, {
-                jsonrpc: "2.0",
-                id: Date.now(),
-                method: "tools/list",
-                params: {}
-            });
-
-            console.log(`[BurpService] listTools Raw Response:`, JSON.stringify(response.data, null, 2));
-
-            // MCP tools/list returns { result: { tools: [...] } }
-            // Some implementations might put it directly in result
-            let tools = [];
-            if (response.data.result) {
-                if (Array.isArray(response.data.result.tools)) {
-                    tools = response.data.result.tools;
-                } else if (Array.isArray(response.data.result)) {
-                    tools = response.data.result;
-                }
-            }
-
-            console.log(`[BurpService] Found ${tools.length} tools`);
-            return tools;
+            return await this._executeList(endpointUrl);
         } catch (error) {
-            console.error('[BurpService] List Tools Error:', error.response?.data || error.message);
+            if (error.response?.status === 404 || !error.response) {
+                endpointUrl = await this.getSessionEndpoint(baseUrl, apiKey, true);
+                return await this._executeList(endpointUrl);
+            }
             throw error;
         }
+    }
+
+    async _executeList(endpointUrl) {
+        console.log(`[BurpService] Listing tools at ${endpointUrl}`);
+        const response = await axios.post(endpointUrl, {
+            jsonrpc: "2.0",
+            id: Date.now(),
+            method: "tools/list",
+            params: {}
+        }, { timeout: 10000 });
+
+        let tools = [];
+        if (response.data.result) {
+            if (Array.isArray(response.data.result.tools)) {
+                tools = response.data.result.tools;
+            } else if (Array.isArray(response.data.result)) {
+                tools = response.data.result;
+            }
+        }
+        console.log(`[BurpService] Found ${tools.length} tools`);
+        return tools;
     }
 }
 
