@@ -355,8 +355,6 @@ const downloadPdf = async (id) => {
 
 const formatDate = (date) => new Date(date).toLocaleDateString('th-TH')
 
-const formatDate = (date) => new Date(date).toLocaleDateString('th-TH')
-
 onMounted(() => {
   loadProject()
   loadReports()
