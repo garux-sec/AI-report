@@ -46,19 +46,6 @@ const newReportForm = ref({
 const allTags = ref([])
 const tagInput = ref('')
 
-// Targets
-const showTargetModal = ref(false)
-const editingTarget = ref(null)
-const targetForm = ref({
-  name: '',
-  url: '',
-  appClass: '',
-  bu: '',
-  it: '',
-  remarks: ''
-})
-const targetSearchTerm = ref('')
-const csvFileInput = ref(null)
 
 // Charts
 const severityData = ref({
@@ -567,139 +554,8 @@ onMounted(() => {
         </BentoCard>
       </BentoGrid>
 
-      <!-- Targets Section -->
-      <div class="section-header">
-        <h2 class="section-title">🎯 Targets</h2>
-        <div class="section-actions">
-          <label class="btn btn-secondary">
-            📁 Import CSV
-            <input type="file" accept=".csv,.txt" @change="handleCSVUpload" hidden />
-          </label>
-          <button class="btn btn-primary" @click="openTargetModal()">+ Add Target</button>
-        </div>
-      </div>
-
-      <!-- Search Targets -->
-      <div class="search-bar">
-        <input 
-          v-model="targetSearchTerm" 
-          type="text" 
-          class="input" 
-          placeholder="Search targets by name, URL, BU, or IT..."
-        />
-      </div>
-
-      <BentoGrid>
-        <BentoCard :span="4">
-          <div class="table-container">
-            <table class="table targets-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Application</th>
-                  <th>URL</th>
-                  <th>Class</th>
-                  <th>BU</th>
-                  <th>IT</th>
-                  <th>Remarks</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="!project?.targets?.length">
-                  <td colspan="8" class="text-center text-muted">No targets configured. Add targets or import from CSV.</td>
-                </tr>
-                <tr v-for="(target, index) in filteredTargets" :key="target._id">
-                  <td class="text-muted">{{ index + 1 }}</td>
-                  <td>
-                    <router-link :to="`/project/${projectId}/target/${target._id}`" class="target-name-link">
-                      {{ target.name }}
-                    </router-link>
-                  </td>
-                  <td>
-                    <a v-if="target.url" :href="target.url" target="_blank" class="target-url">{{ target.url }}</a>
-                    <span v-else class="text-muted">-</span>
-                  </td>
-                  <td>
-                    <span v-if="target.appClass" :class="['app-class-badge', target.appClass.toLowerCase()]">
-                      {{ target.appClass }}
-                    </span>
-                    <span v-else class="text-muted">-</span>
-                  </td>
-                  <td>{{ target.bu || '-' }}</td>
-                  <td>{{ target.it || '-' }}</td>
-                  <td class="remarks-cell">{{ target.remarks || '-' }}</td>
-                  <td>
-                    <div class="actions-cell">
-                      <router-link :to="`/project/${projectId}/target/${target._id}`" class="btn btn-sm btn-icon btn-success-icon" title="Notes & Commands">📝</router-link>
-                      <button class="btn btn-sm btn-icon" @click="openTargetModal(target)" title="Edit">✏️</button>
-                      <button class="btn btn-sm btn-icon btn-danger-icon" @click="deleteTarget(target._id)" title="Delete">🗑️</button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="targets-count">
-            Total: {{ project?.targets?.length || 0 }} targets
-          </div>
-        </BentoCard>
-      </BentoGrid>
     </main>
 
-    <!-- Target Modal -->
-    <div v-if="showTargetModal" class="modal-backdrop" @click.self="closeTargetModal">
-      <div class="modal">
-        <div class="modal-header">
-          <h2 class="modal-title">{{ editingTarget ? 'Edit Target' : 'Add Target' }}</h2>
-          <button class="modal-close" @click="closeTargetModal">&times;</button>
-        </div>
-        
-        <form @submit.prevent="saveTarget" class="modal-body">
-          <div class="form-group">
-            <label class="form-label">Application Name *</label>
-            <input v-model="targetForm.name" type="text" class="input" required placeholder="e.g. Weight Scale Automation" />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">URL</label>
-            <input v-model="targetForm.url" type="text" class="input" placeholder="https://example.com" />
-          </div>
-
-          <div class="form-grid-3">
-            <div class="form-group">
-              <label class="form-label">App Class</label>
-              <select v-model="targetForm.appClass" class="input">
-                <option value="">Select...</option>
-                <option value="A">A - Critical</option>
-                <option value="B">B - Important</option>
-                <option value="C">C - Standard</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Business Unit</label>
-              <input v-model="targetForm.bu" type="text" class="input" placeholder="e.g. Supply Chain" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">IT Contact</label>
-              <input v-model="targetForm.it" type="text" class="input" placeholder="e.g. John Doe" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Remarks</label>
-            <textarea v-model="targetForm.remarks" class="input textarea" rows="2" placeholder="Additional notes..."></textarea>
-          </div>
-
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeTargetModal">Cancel</button>
-            <button type="submit" class="btn btn-primary">{{ editingTarget ? 'Update' : 'Add' }} Target</button>
-          </div>
-        </form>
-      </div>
-    </div>
 
     <!-- New Report Modal -->
     <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
