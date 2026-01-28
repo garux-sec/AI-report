@@ -112,15 +112,31 @@ class BurpService {
      */
     async listTools(endpointUrl) {
         try {
+            console.log(`[BurpService] Listing tools at ${endpointUrl}`);
             const response = await axios.post(endpointUrl, {
                 jsonrpc: "2.0",
                 id: Date.now(),
                 method: "tools/list",
                 params: {}
             });
-            return response.data.result?.tools || [];
+
+            console.log(`[BurpService] listTools Raw Response:`, JSON.stringify(response.data, null, 2));
+
+            // MCP tools/list returns { result: { tools: [...] } }
+            // Some implementations might put it directly in result
+            let tools = [];
+            if (response.data.result) {
+                if (Array.isArray(response.data.result.tools)) {
+                    tools = response.data.result.tools;
+                } else if (Array.isArray(response.data.result)) {
+                    tools = response.data.result;
+                }
+            }
+
+            console.log(`[BurpService] Found ${tools.length} tools`);
+            return tools;
         } catch (error) {
-            console.error('[BurpService] List Tools Error:', error.message);
+            console.error('[BurpService] List Tools Error:', error.response?.data || error.message);
             throw error;
         }
     }
