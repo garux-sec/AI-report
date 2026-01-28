@@ -19,13 +19,20 @@ import { projectsApi } from '../../api/projects'
 import { watchEffect } from 'vue'
 
 watchEffect(async () => {
-  const projectId = route.params.id || route.params.projectId
+  let projectId = route.params.projectId || route.query.projectId
+  
+  // If not in specific params/query, check if we're on a project route where :id is the projectId
+  if (!projectId && (route.name === 'ProjectDashboard' || route.name === 'ProjectTargets')) {
+    projectId = route.params.id
+  }
+
   if (projectId) {
     try {
       const project = await projectsApi.getById(projectId)
       projectContext.value = project
     } catch (e) {
       console.error('Failed to load project context')
+      projectContext.value = null
     }
   } else {
     projectContext.value = null
@@ -91,7 +98,7 @@ const logout = () => {
           :key="item.path"
           :to="item.path"
           class="nav-sub-link"
-          :class="{ active: route.path === item.path }"
+          :class="{ active: route.path === item.path || (item.label === 'Reports' && route.path.startsWith('/report/')) }"
         >
           <span class="nav-icon">{{ item.icon }}</span>
           <span class="nav-label">{{ item.label }}</span>
