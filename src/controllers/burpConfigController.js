@@ -79,8 +79,9 @@ exports.testConnection = async (req, res) => {
         // Verify full protocol functionality by listing tools
         // listTools will handle getSessionEndpoint internally
         const tools = await burpService.listTools(url, apiKey);
+        const endpoint = await burpService.getSessionEndpoint(url, apiKey);
 
-        res.json({ online: true, toolsCount: tools.length });
+        res.json({ online: true, toolsCount: tools.length, sessionUrl: endpoint });
     } catch (error) {
         console.error('[BurpConfigController] Test Connection Failed:', error);
         res.json({ online: false, message: error.message });

@@ -33,7 +33,11 @@ const checkStatus = async (config) => {
   statuses.value[config._id] = { online: false, checking: true }
   try {
     const result = await burpApi.testConnection({ url: config.url, apiKey: config.apiKey })
-    statuses.value[config._id] = { online: result.online, checking: false }
+    statuses.value[config._id] = { 
+        online: result.online, 
+        checking: false, 
+        sessionUrl: result.sessionUrl 
+    }
     if (result.online && result.toolsCount > 0) {
       loadTools(config._id)
     }
@@ -180,6 +184,7 @@ onMounted(() => {
               </div>
               <div class="config-details">
                 <p><strong>Status:</strong> <span :class="statuses[config._id]?.online ? 'text-success' : 'text-danger'">{{ statuses[config._id]?.online ? 'Online' : 'Offline' }}</span></p>
+                <p v-if="statuses[config._id]?.sessionUrl"><strong>Session:</strong> <code class="session-path">{{ statuses[config._id].sessionUrl }}</code></p>
                 <p><strong>Auth:</strong> {{ config.apiKey ? 'API Key Set' : 'None' }}</p>
               </div>
 
@@ -415,6 +420,16 @@ onMounted(() => {
 .empty-icon {
   font-size: 3rem;
   margin-bottom: var(--spacing-md);
+}
+
+.session-path {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 4px;
+  border-radius: 4px;
+  color: var(--primary-light);
+  word-break: break-all;
 }
 
 .help-text {
