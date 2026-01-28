@@ -20,5 +20,8 @@ export const burpApi = {
         api.post('/burp-config/test', data),
 
     listTools: (id) =>
-        api.get(`/burp-config/${id}/tools`)
+        api.get(`/burp-config/${id}/tools`),
+
+    analyzeHistory: (data) =>
+        api.post('/burp-config/analyze-history', data)
 }

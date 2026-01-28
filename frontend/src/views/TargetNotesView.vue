@@ -3,6 +3,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { projectsApi } from '../api/projects'
 import { sshApi } from '../api/ssh'
+import { burpApi } from '../api/burp'
+import { aiConfigApi } from '../api/ai-config'
 import Sidebar from '../components/layout/Sidebar.vue'
 import BentoGrid from '../components/layout/BentoGrid.vue'
 import BentoCard from '../components/layout/BentoCard.vue'
@@ -36,6 +38,14 @@ const imageFileInput = ref(null)
 const imageDescription = ref('')
 const quill = ref(null) // Reference to Quill instance
 
+// Burp Analysis
+const burpConfigs = ref([])
+const selectedBurpConfig = ref('')
+const selectedAiProvider = ref('ollama')
+const selectedAiModel = ref('mistral')
+const isAnalyzing = ref(false)
+const analysisResult = ref('')
+
 // Preset commands
 const presetCommands = [
   { label: 'Directory Bruteforce (dirb)', cmd: 'dirb {url}' },
@@ -63,6 +73,54 @@ const loadTarget = async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+const loadBurpConfigs = async () => {
+    try {
+        burpConfigs.value = await burpApi.getConfigs()
+        const defaultConfig = burpConfigs.value.find(c => c.isDefault && c.isEnabled)
+        if (defaultConfig) selectedBurpConfig.value = defaultConfig._id
+    } catch (error) {
+        console.error('Failed to load Burp configs:', error)
+    }
+}
+
+const analyzeHistory = async () => {
+    if (!selectedBurpConfig.value) {
+        toast.error('Please select a Burp configuration')
+        return
+    }
+
+    try {
+        isAnalyzing.value = true
+        toast.info('Analyzing Burp history...')
+        
+        const result = await burpApi.analyzeHistory({
+            configId: selectedBurpConfig.value,
+            provider: selectedAiProvider.value,
+            model: selectedAiModel.value
+        })
+
+        analysisResult.value = result.analysis
+        toast.success('Analysis complete')
+    } catch (error) {
+        console.error('Analysis failed:', error)
+        toast.error('Analysis failed: ' + (error.response?.data?.message || error.message))
+    } finally {
+        isAnalyzing.value = false
+    }
+}
+
+const appendToNotes = () => {
+    if (!analysisResult.value) return
+    const editor = quill.value.getQuill()
+    const index = editor.getLength()
+    
+    editor.insertText(index, '\n\n## Burp Analysis Results\n', 'bold', true)
+    editor.insertText(index + 30, analysisResult.value)
+    
+    toast.success('Added to notes')
+    analysisResult.value = '' // Clear after adding
 }
 
 const loadKaliRunners = async () => {
@@ -241,6 +299,7 @@ const openImageModal = (img) => {
 onMounted(() => {
   loadTarget()
   loadKaliRunners()
+  loadBurpConfigs()
 })
 </script>
 
@@ -340,6 +399,51 @@ onMounted(() => {
                   {{ isExecuting ? '⏳ Running...' : '▶ Execute' }}
                 </button>
               </div>
+            </div>
+          </BentoCard>
+
+          <!-- Burp Analysis -->
+          <BentoCard title="🕵️ Burp History Analysis (Last 20)" :span="3">
+            <div class="analysis-section">
+                
+                <div class="config-row">
+                    <div class="form-group">
+                        <label>Burp Config</label>
+                        <select v-model="selectedBurpConfig" class="input">
+                             <option value="">-- Select Burp --</option>
+                             <option v-for="cfg in burpConfigs" :key="cfg._id" :value="cfg._id" :disabled="!cfg.isEnabled">
+                                {{ cfg.name }} ({{ cfg.url }})
+                             </option>
+                        </select>
+                    </div>
+                     <div class="form-group">
+                        <label>AI Model</label>
+                        <select v-model="selectedAiModel" class="input">
+                             <option value="mistral">Mistral (Ollama)</option>
+                             <option value="llama3">Llama3 (Ollama)</option>
+                             <option value="gpt-4">GPT-4 (OpenAI)</option>
+                             <option value="gpt-3.5-turbo">GPT-3.5 (OpenAI)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="action-row">
+                    <button class="btn btn-primary btn-analyze" @click="analyzeHistory" :disabled="isAnalyzing || !selectedBurpConfig">
+                        {{ isAnalyzing ? '🧠 Analyzing...' : '🚀 Analyze Vulnerabilities' }}
+                    </button>
+                    <button v-if="analysisResult" class="btn btn-secondary" @click="appendToNotes">
+                        📥 Append to Notes
+                    </button>
+                </div>
+
+                <div v-if="analysisResult" class="analysis-result">
+                    <div class="result-header">
+                        <h4>Analysis Findings</h4>
+                        <button class="btn-text" @click="analysisResult = ''">Clear</button>
+                    </div>
+                    <div class="result-content markdown-body">{{ analysisResult }}</div>
+                </div>
+
             </div>
           </BentoCard>
         </BentoGrid>
@@ -798,6 +902,71 @@ onMounted(() => {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
 }
+
+/* Burp Analysis */
+.analysis-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.config-row {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.config-row .form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.btn-analyze {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    font-size: 1rem;
+}
+
+.analysis-result {
+    margin-top: var(--spacing-md);
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: var(--spacing-sm);
+}
+
+.result-header h4 {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.result-content {
+    line-height: 1.6;
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+}
+
+.markdown-body h3 { 
+    margin-top: 1em; 
+    font-size: 1.1em; 
+    color: var(--primary-light); 
+}
+.markdown-body strong { color: white; }
 
 .command-output {
   padding: var(--spacing-md);

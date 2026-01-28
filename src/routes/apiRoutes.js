@@ -98,6 +98,7 @@ router.delete('/burp-config/:id', authMiddleware, burpConfigController.deleteCon
 router.post('/burp-config/:id/default', authMiddleware, burpConfigController.setDefault);
 router.get('/burp-config/:id/tools', authMiddleware, burpConfigController.listTools);
 router.post('/burp-config/test', authMiddleware, burpConfigController.testConnection);
+router.post('/burp-config/analyze-history', authMiddleware, burpConfigController.analyzeHistory);
 
 // Multer for Project Assets
 const storage = multer.diskStorage({
