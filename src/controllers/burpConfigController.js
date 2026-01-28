@@ -1,4 +1,5 @@
 const BurpConfig = require('../models/BurpConfig');
+const axios = require('axios');
 
 exports.getConfigs = async (req, res) => {
     try {
@@ -67,5 +68,21 @@ exports.setDefault = async (req, res) => {
         res.json(config);
     } catch (error) {
         res.status(500).json({ message: 'Error setting default config' });
+    }
+};
+
+exports.testConnection = async (req, res) => {
+    try {
+        const { url, apiKey } = req.body;
+        // Simple health check: try to fetch something or just ping the URL
+        // Many MCP servers might have a /health or just respond to GET on root
+        // If not, we just check if the URL is reachable
+        await axios.get(url, {
+            headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {},
+            timeout: 5000
+        });
+        res.json({ online: true });
+    } catch (error) {
+        res.json({ online: false, message: error.message });
     }
 };

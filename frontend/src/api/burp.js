@@ -14,5 +14,8 @@ export const burpApi = {
         api.delete(`/burp-config/${id}`),
 
     setDefault: (id) =>
-        api.post(`/burp-config/${id}/default`)
+        api.post(`/burp-config/${id}/default`),
+
+    testConnection: (data) =>
+        api.post('/burp-config/test', data)
 }

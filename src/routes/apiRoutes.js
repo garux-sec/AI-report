@@ -96,6 +96,7 @@ router.post('/burp-config', authMiddleware, burpConfigController.createConfig);
 router.put('/burp-config/:id', authMiddleware, burpConfigController.updateConfig);
 router.delete('/burp-config/:id', authMiddleware, burpConfigController.deleteConfig);
 router.post('/burp-config/:id/default', authMiddleware, burpConfigController.setDefault);
+router.post('/burp-config/test', authMiddleware, burpConfigController.testConnection);
 
 // Multer for Project Assets
 const storage = multer.diskStorage({

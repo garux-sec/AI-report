@@ -14,6 +14,21 @@ const configs = ref([])
 const isLoading = ref(true)
 const showModal = ref(false)
 const editingConfig = ref(null)
+const statuses = ref({}) // Store online status { id: { online, checking } }
+
+const checkStatus = async (config) => {
+  statuses.value[config._id] = { online: false, checking: true }
+  try {
+    const result = await burpApi.testConnection({ url: config.url, apiKey: config.apiKey })
+    statuses.value[config._id] = { online: result.online, checking: false }
+  } catch (error) {
+    statuses.value[config._id] = { online: false, checking: false }
+  }
+}
+
+const checkAllStatuses = () => {
+  configs.value.forEach(config => checkStatus(config))
+}
 
 const formData = ref({
   name: '',
@@ -24,6 +39,7 @@ const formData = ref({
 const loadConfigs = async () => {
   try {
     configs.value = await burpApi.getConfigs()
+    checkAllStatuses()
   } catch (error) {
     console.error('Failed to load configs:', error)
     toast.error('Failed to load configs')
@@ -131,7 +147,17 @@ onMounted(() => {
               <div class="config-header">
                 <span class="provider-icon">🛰️</span>
                 <div class="config-info">
-                  <h4>{{ config.name }}</h4>
+                  <div class="name-row">
+                    <h4>{{ config.name }}</h4>
+                    <div 
+                      v-if="statuses[config._id]" 
+                      class="status-dot-wrapper"
+                      :title="statuses[config._id].checking ? 'Checking...' : (statuses[config._id].online ? 'Online' : 'Offline')"
+                    >
+                      <span class="status-dot" :class="{ online: statuses[config._id].online, checking: statuses[config._id].checking }"></span>
+                      <span class="status-text">{{ statuses[config._id].checking ? 'Checking' : (statuses[config._id].online ? 'Online' : 'Offline') }}</span>
+                    </div>
+                  </div>
                   <span class="url-label">{{ config.url }}</span>
                 </div>
                 <span v-if="config.isDefault" class="badge-default">Default</span>
@@ -236,6 +262,50 @@ onMounted(() => {
   margin: 0;
   font-size: 1.1rem;
   color: white;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.status-dot-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #64748b;
+}
+
+.status-dot.online {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.status-dot.checking {
+  background: #3b82f6;
+  animation: pulse 1.5s infinite;
+}
+
+.status-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
 }
 
 .url-label {
