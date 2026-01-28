@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { projectsApi } from '../api/projects'
 import Sidebar from '../components/layout/Sidebar.vue'
@@ -28,6 +28,14 @@ const targetForm = ref({
   remarks: ''
 })
 const targetSearchTerm = ref('')
+
+// Pagination
+const currentPage = ref(1)
+const itemsPerPage = 10
+
+watch([targetSearchTerm, project], () => {
+  currentPage.value = 1
+}, { deep: true })
 
 const loadProject = async () => {
   try {
@@ -61,6 +69,13 @@ const filteredTargets = computed(() => {
     return (a.name || '').localeCompare(b.name || '')
   })
 })
+
+const paginatedTargets = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return filteredTargets.value.slice(start, start + itemsPerPage)
+})
+
+const totalPages = computed(() => Math.ceil(filteredTargets.value.length / itemsPerPage))
 
 const toggleStar = async (target) => {
   try {
@@ -223,8 +238,8 @@ onMounted(() => {
                 <tr v-if="!project?.targets?.length">
                   <td colspan="8" class="text-center text-muted">No targets configured. Add targets or import from CSV.</td>
                 </tr>
-                <tr v-for="(target, index) in filteredTargets" :key="target._id">
-                  <td class="text-muted">{{ index + 1 }}</td>
+                <tr v-for="(target, index) in paginatedTargets" :key="target._id">
+                  <td class="text-muted">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
                   <td>
                     <router-link :to="`/project/${projectId}/target/${target._id}`" class="target-name-link">
                       {{ target.name }}
@@ -262,8 +277,28 @@ onMounted(() => {
               </tbody>
             </table>
           </div>
+
+          <!-- Pagination UI -->
+          <div v-if="totalPages > 1" class="pagination">
+            <button 
+              class="btn btn-sm" 
+              :disabled="currentPage <= 1"
+              @click="currentPage--"
+            >
+              Previous
+            </button>
+            <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+            <button 
+              class="btn btn-sm" 
+              :disabled="currentPage >= totalPages"
+              @click="currentPage++"
+            >
+              Next
+            </button>
+          </div>
+
           <div class="targets-count">
-            Total: {{ project?.targets?.length || 0 }} targets
+            Total: {{ filteredTargets.length }} targets
           </div>
         </BentoCard>
       </BentoGrid>
@@ -475,6 +510,22 @@ onMounted(() => {
   text-align: right;
   color: var(--text-muted);
   font-size: 0.875rem;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--glass-border);
+}
+
+.page-info {
+  font-size: 0.9rem;
+  color: var(--text-muted);
 }
 
 /* Modal Styles */
