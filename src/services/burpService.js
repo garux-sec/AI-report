@@ -87,7 +87,11 @@ class BurpService {
                 });
 
                 response.data.on('error', err => {
-                    console.error('[BurpService] SSE Stream Error:', err);
+                    if (err.code === 'ECONNRESET' || err.message.includes('aborted')) {
+                        console.log(`[BurpService] SSE connection closed by server (${baseUrl})`);
+                    } else {
+                        console.error('[BurpService] SSE Stream Error:', err.message);
+                    }
                     this.sessions.delete(baseUrl);
                     if (!resolved) reject(err);
                 });
