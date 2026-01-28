@@ -74,14 +74,19 @@ exports.setDefault = async (req, res) => {
 exports.testConnection = async (req, res) => {
     try {
         const { url, apiKey } = req.body;
-        // Simple health check: try to fetch something or just ping the URL
-        // Many MCP servers might have a /health or just respond to GET on root
-        // If not, we just check if the URL is reachable
-        await axios.get(url, {
+
+        // Use stream responseType to resolve as soon as headers are received
+        // This is necessary for SSE (Server-Sent Events) which never end
+        const response = await axios.get(url, {
             headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {},
-            timeout: 5000
+            timeout: 5000,
+            responseType: 'stream'
         });
+
         res.json({ online: true });
+
+        // Close connection immediately
+        response.data.destroy();
     } catch (error) {
         res.json({ online: false, message: error.message });
     }
