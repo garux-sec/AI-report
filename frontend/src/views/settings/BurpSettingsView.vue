@@ -286,8 +286,16 @@ onMounted(() => {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.config-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
 }
 
 .config-card.default {
@@ -405,12 +413,24 @@ onMounted(() => {
   display: flex;
   gap: var(--spacing-sm);
   align-items: center;
+  margin-top: auto;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .btn-danger-icon {
   margin-left: auto;
   color: #f87171;
   background: rgba(239, 68, 68, 0.1);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
 }
 
 .btn-danger-icon:hover {
@@ -471,16 +491,36 @@ onMounted(() => {
 .tools-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.tools-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.tools-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
 }
 
 .tool-tag {
-  font-size: 0.75rem;
-  background: rgba(99, 102, 241, 0.1);
-  color: var(--primary-color);
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  font-size: 0.7rem;
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--primary-light);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tool-tag:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
 }
 
 .tools-loading, .tools-empty {
