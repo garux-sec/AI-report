@@ -22,25 +22,36 @@ class BurpService {
                     'Accept': 'text/event-stream'
                 },
                 responseType: 'stream',
-                timeout: 10000
+                timeout: 20000
             }).then(response => {
                 let sessionUrl = null;
 
+                let lineBuffer = '';
+                let currentEvent = null;
+                let currentData = null;
+
                 response.data.on('data', chunk => {
-                    const lines = chunk.toString().split('\n');
-                    let currentEvent = null;
+                    lineBuffer += chunk.toString();
+                    const lines = lineBuffer.split(/\r?\n/);
+                    lineBuffer = lines.pop(); // Keep partial line in buffer
 
                     for (const line of lines) {
-                        if (line.startsWith('event:')) {
-                            currentEvent = line.replace('event:', '').trim();
-                        } else if (line.startsWith('data:') && currentEvent === 'endpoint') {
-                            const data = line.replace('data:', '').trim();
-                            // The data usually contains the path like /message?sessionId=...
-                            // We combine it with the baseUrl
-                            sessionUrl = `${baseUrl.replace(/\/$/, '')}${data}`;
+                        const trimmedLine = line.trim();
+                        if (trimmedLine === '') {
+                            // Message boundary - reset for next message if not resolved
+                            currentEvent = null;
+                            currentData = null;
+                        } else if (trimmedLine.startsWith('event:')) {
+                            currentEvent = trimmedLine.slice(6).trim();
+                        } else if (trimmedLine.startsWith('data:')) {
+                            currentData = trimmedLine.slice(5).trim();
+                        }
+
+                        // Check if we have both event and data for the handshake
+                        if (currentEvent === 'endpoint' && currentData) {
+                            sessionUrl = `${baseUrl.replace(/\/$/, '')}${currentData}`;
                             console.log(`[BurpService] Handshake successful. Endpoint: ${sessionUrl}`);
 
-                            // Once we have the endpoint, we can stop the SSE stream
                             response.data.destroy();
                             resolve(sessionUrl);
                             return;
@@ -59,7 +70,7 @@ class BurpService {
                         response.data.destroy();
                         reject(new Error('Handshake timed out waiting for endpoint event'));
                     }
-                }, 8000);
+                }, 15000);
 
             }).catch(err => {
                 console.error('[BurpService] SSE Connection Failed:', err.message);
