@@ -18,6 +18,13 @@ const statuses = ref({}) // Store online status { id: { online, checking } }
 const availableTools = ref({}) // Store tools per config { id: [tools] }
 const isFetchingTools = ref({}) // Loading state per config
 
+const formatSessionId = (url) => {
+  if (!url) return ''
+  // Handle both /message?sessionId=UUID and just UUID
+  const match = url.match(/sessionId=([^&]+)/)
+  return match ? match[1] : url
+}
+
 const loadTools = async (id) => {
   isFetchingTools.value[id] = true
   try {
@@ -184,7 +191,7 @@ onMounted(() => {
               </div>
               <div class="config-details">
                 <p><strong>Status:</strong> <span :class="statuses[config._id]?.online ? 'text-success' : 'text-danger'">{{ statuses[config._id]?.online ? 'Online' : 'Offline' }}</span></p>
-                <p v-if="statuses[config._id]?.sessionUrl"><strong>Session:</strong> <code class="session-path">{{ statuses[config._id].sessionUrl }}</code></p>
+                <p v-if="statuses[config._id]?.sessionUrl"><strong>Session:</strong> <code class="session-path" :title="statuses[config._id].sessionUrl">{{ formatSessionId(statuses[config._id].sessionUrl) }}</code></p>
                 <p><strong>Auth:</strong> {{ config.apiKey ? 'API Key Set' : 'None' }}</p>
               </div>
 
