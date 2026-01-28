@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { projectsApi } from '../api/projects'
 import { sshApi } from '../api/ssh'
 import { burpApi } from '../api/burp'
+import { aiApi } from '../api/ai'
 import Sidebar from '../components/layout/Sidebar.vue'
 import BentoGrid from '../components/layout/BentoGrid.vue'
 import BentoCard from '../components/layout/BentoCard.vue'
@@ -40,8 +41,8 @@ const quill = ref(null) // Reference to Quill instance
 // Burp Analysis
 const burpConfigs = ref([])
 const selectedBurpConfig = ref('')
-const selectedAiProvider = ref('ollama')
-const selectedAiModel = ref('mistral')
+const aiConfigs = ref([])
+const selectedAiConfigId = ref('')
 const isAnalyzing = ref(false)
 const analysisResult = ref('')
 
@@ -79,25 +80,31 @@ const loadBurpConfigs = async () => {
         burpConfigs.value = await burpApi.getConfigs()
         const defaultConfig = burpConfigs.value.find(c => c.isDefault && c.isEnabled)
         if (defaultConfig) selectedBurpConfig.value = defaultConfig._id
+
+        // Load AI Configs
+        const configs = await aiApi.getConfigs()
+        aiConfigs.value = configs.filter(c => c.isEnabled)
+        const defaultAi = aiConfigs.value.find(c => c.isDefault)
+        if (defaultAi) selectedAiConfigId.value = defaultAi._id
     } catch (error) {
-        console.error('Failed to load Burp configs:', error)
+        console.error('Failed to load configs:', error)
     }
 }
 
 const analyzeHistory = async () => {
-    if (!selectedBurpConfig.value) {
-        toast.error('Please select a Burp configuration')
-        return
-    }
+    if (!selectedBurpConfig.value) return toast.error('Please select a Burp configuration')
+    if (!selectedAiConfigId.value) return toast.error('Please select an AI Connection')
+
+    const aiConfig = aiConfigs.value.find(c => c._id === selectedAiConfigId.value)
+    if (!aiConfig) return toast.error('Invalid AI Config')
 
     try {
         isAnalyzing.value = true
-        toast.info('Analyzing Burp history...')
         
         const result = await burpApi.analyzeHistory({
             configId: selectedBurpConfig.value,
-            provider: selectedAiProvider.value,
-            model: selectedAiModel.value
+            provider: aiConfig.provider,
+            model: aiConfig.modelName || 'default' // Use configured model or let backend decide
         })
 
         analysisResult.value = result.analysis
@@ -415,13 +422,14 @@ onMounted(() => {
                              </option>
                         </select>
                     </div>
+                    </div>
                      <div class="form-group">
-                        <label>AI Model</label>
-                        <select v-model="selectedAiModel" class="input">
-                             <option value="mistral">Mistral (Ollama)</option>
-                             <option value="llama3">Llama3 (Ollama)</option>
-                             <option value="gpt-4">GPT-4 (OpenAI)</option>
-                             <option value="gpt-3.5-turbo">GPT-3.5 (OpenAI)</option>
+                        <label>AI Connection</label>
+                        <select v-model="selectedAiConfigId" class="input">
+                             <option value="">-- Select AI --</option>
+                             <option v-for="ai in aiConfigs" :key="ai._id" :value="ai._id">
+                                {{ ai.name }} ({{ ai.provider }} - {{ ai.modelName }})
+                             </option>
                         </select>
                     </div>
                 </div>
