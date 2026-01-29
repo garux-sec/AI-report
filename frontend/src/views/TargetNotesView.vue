@@ -422,7 +422,6 @@ onMounted(() => {
                              </option>
                         </select>
                     </div>
-                    </div>
                      <div class="form-group">
                         <label>AI Connection</label>
                         <select v-model="selectedAiConfigId" class="input">

@@ -4,8 +4,7 @@ const AIConfigSchema = new mongoose.Schema({
     provider: {
         type: String,
         enum: ['openai', 'ollama', 'anthropic', 'gemini', 'other'],
-        required: true,
-        unique: true
+        required: true
     },
     name: String, // Friendly name e.g. "My Ollama"
     apiKey: String,
